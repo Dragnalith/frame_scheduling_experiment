@@ -92,27 +92,58 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
 }
 
-struct Job
-{
-    float duration;
-    int frame_index;
-};
 
-struct Core
-{
-    int index;
-    float time = 0.f;
-};
+    PrepareJob::PrepareJob(Simulator* sim, std::shared_ptr<Frame> f)
+        : Job(sim, f)
+    {
+        m_duration = 100.f * m_simulator->generate();
+    }
 
-class Simulator
-{
-public:
-    Simulator(int core, int frame_pool, float stddev)
+    float PrepareJob::duration() const
+    {
+        return m_duration;
+    }
+    const char* PrepareJob::name() const 
+    {
+        return "Prepare";
+    }
+
+    void PrepareJob::exec() 
+    {
+        auto sim = m_simulator;
+        sim->push_job(std::make_shared<RenderJob>(m_simulator, m_frame));
+        auto f = sim->start_frame();
+        m_simulator->push_job(std::make_shared<PrepareJob>(m_simulator, f));
+    }
+
+    RenderJob::RenderJob(Simulator* sim, std::shared_ptr<Frame> f)
+        : Job(sim, f)
+    {
+        m_duration = 100.f * m_simulator->generate();
+    }
+
+      float RenderJob::duration() const 
+     {
+         return m_duration;
+     }
+
+      const char* RenderJob::name() const 
+     {
+         return "Render";
+     }
+
+     void RenderJob::exec() 
+     {
+        m_simulator->push_frame(m_frame);
+    }
+
+
+    Simulator::Simulator(int core, int frame_pool, float stddev)
         : m_core_count(core)
         , m_frame_pool_size(frame_pool)
         , m_frame_count(0)
         , m_generator(0)
-        , m_distribution(100.f * (1.f - stddev), 100.f *(1.f + stddev))
+        , m_distribution((1.f - stddev), (1.f + stddev))
     {
         for (int i = 0; i < m_core_count; i++)
         {
@@ -125,66 +156,110 @@ public:
 
         for (int i = 0; i < m_frame_pool_size; i++)
         {
-            m_job_queue.push_back(generate());
+            m_frame_pool.push_back(std::make_shared<Frame>());
         }
+
+        auto f = start_frame();
+        push_job(std::make_shared<PrepareJob>(this, f));
     }
 
-    void step()
+    void Simulator::step()
     {
-        auto* min_core = &m_cores[0];
-        for (auto& c : m_cores)
+        if (m_job_queue.empty())
         {
-            if (c.time < min_core->time)
+            // Find the latest core which has a job to execute
+            Core* min_core = nullptr;
+            for (auto& c : m_cores)
             {
-                min_core = &c;
+                if (c.current_job)
+                {
+                    if (min_core == nullptr)
+                    {
+                        min_core = &c;
+                    }
+                    else if
+                    (c.time < min_core->time)
+                    {
+                        min_core = &c;
+                    }
+                }
+            }
+            
+            // If assert break, it is a deadlock
+            assert(min_core != nullptr);
+
+            min_core->current_job->exec();
+            min_core->current_job = nullptr;
+            
+            // Advance the time of all the core which has no job to execute
+            // to be equal to min_core.time
+            for (auto& c : m_cores)
+            {
+                if (!c.current_job)
+                {
+                    c.time = min_core->time;
+                }
             }
         }
+        else
+        {
+            auto* min_core = &m_cores[0];
+            for (auto& c : m_cores)
+            {
+                if (c.time < min_core->time)
+                {
+                    min_core = &c;
+                }
+            }
 
-        std::shared_ptr<Job> j = pop_job();
+            if (min_core->current_job)
+            {
+                min_core->current_job->exec();
+                min_core->current_job = nullptr;
+            }
 
-        m_timeboxes.emplace_back(min_core->index, j->frame_index, min_core->time, min_core->time + j->duration, "Job", g_Colors[j->frame_index % array_size(g_Colors)]);
-        m_max = ImMax(m_max, TimeBoxP1(m_timeboxes.back()));
-        min_core->time += j->duration;
+            std::shared_ptr<Job> j = pop_job();
+
+            m_timeboxes.emplace_back(min_core->index, j->frame_index(), min_core->time, min_core->time + j->duration(), j->name(), g_Colors[j->frame_index() % array_size(g_Colors)]);
+            m_max = ImMax(m_max, TimeBoxP1(m_timeboxes.back()));
+            min_core->time += j->duration();
+            min_core->current_job = j;
+        }
     }
 
-    const std::vector<TimeBox>& get_timeboxes() const { return m_timeboxes; }
-    const ImVec2& get_max() const { return m_max; }
-    const std::deque<std::shared_ptr<Job>>& get_queue() const { return m_job_queue; }
-
-private:
-    std::shared_ptr<Job> generate()
+    float Simulator::generate()
     {
-        std::shared_ptr<Job> j = std::make_shared<Job>();
-        j->duration = m_distribution(m_generator);
-        j->frame_index = m_frame_count;
-        m_frame_count += 1;
-        return j;
+        return m_distribution(m_generator);
     }
 
-    std::shared_ptr<Job> pop_job()
+    std::shared_ptr<Frame> Simulator::start_frame()
+    {
+        assert(!m_frame_pool.empty());
+        std::shared_ptr<Frame> f = m_frame_pool.back();
+        m_frame_pool.pop_back();
+
+        f->frame_index = m_frame_count;
+        m_frame_count += 1;
+        return f;
+    }
+
+    void Simulator::push_job(std::shared_ptr<Job> j)
+    {
+        m_job_queue.push_back(j);
+    }
+
+    void Simulator::push_frame(std::shared_ptr<Frame> f)
+    {
+        m_frame_pool.push_back(f);
+    }
+
+    std::shared_ptr<Job> Simulator::pop_job()
     {
         assert(!m_job_queue.empty());
         std::shared_ptr<Job> j = m_job_queue.front();
         m_job_queue.pop_front();
-        m_job_queue.push_back(generate());
         return j;
     }
-
-
-private:
-    int m_core_count;
-    int m_frame_pool_size;
-    int m_frame_count;
-    ImVec2 m_max;
-
-    std::mt19937 m_generator;
-    std::uniform_real_distribution<> m_distribution;
-
-    std::vector<Core> m_cores;
-    std::deque<std::shared_ptr<Job>> m_job_queue;
-    std::deque<int> m_frame_pool;
-    std::vector<TimeBox> m_timeboxes;
-};
 
 
 void DrawVisualizer()
@@ -228,6 +303,7 @@ void DrawVisualizer()
             count += 1;
         }
     }
+    simulator->DrawCore(origin);
 
     // Add an offset to scroll a bit more than the max of the timeline
     ImGui::SetCursorPos(simulator->get_max() + ImVec2(100.f, 0.f));
@@ -257,7 +333,22 @@ void DrawVisualizer()
 
     for (auto& j : simulator->get_queue())
     {
-        ImGui::BulletText("Job: %d, duration = %f", j->frame_index, j->duration);
+        ImGui::BulletText("Job: %d, %s (%f)", j->frame_index(), j->name(), j->duration());
     }
     ImGui::End();
+}
+
+void Simulator::DrawCore(ImVec2 origin)
+{
+    auto drawList = ImGui::GetWindowDrawList();
+    auto win = ImGui::GetWindowPos();
+
+    for (const auto& c : m_cores)
+    {
+        auto p0 = win + origin + ImVec2(c.time, c.index * g_Height);
+        auto p1 = p0 + ImVec2(2.f, g_Height);
+
+        ImU32 color = c.current_job ? g_Red : g_White;
+        drawList->AddRectFilled(p0, p1, color);
+    }
 }
