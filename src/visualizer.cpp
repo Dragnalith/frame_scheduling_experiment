@@ -140,31 +140,31 @@ public:
             }
         }
 
-        Job j = pop_job();
+        std::shared_ptr<Job> j = pop_job();
 
-        m_timeboxes.emplace_back(min_core->index, j.frame_index, min_core->time, min_core->time + j.duration, "Job", g_Colors[j.frame_index % array_size(g_Colors)]);
+        m_timeboxes.emplace_back(min_core->index, j->frame_index, min_core->time, min_core->time + j->duration, "Job", g_Colors[j->frame_index % array_size(g_Colors)]);
         m_max = ImMax(m_max, TimeBoxP1(m_timeboxes.back()));
-        min_core->time += j.duration;
+        min_core->time += j->duration;
     }
 
     const std::vector<TimeBox>& get_timeboxes() const { return m_timeboxes; }
     const ImVec2& get_max() const { return m_max; }
-    const std::deque<Job>& get_queue() const { return m_job_queue; }
+    const std::deque<std::shared_ptr<Job>>& get_queue() const { return m_job_queue; }
 
 private:
-    Job generate()
+    std::shared_ptr<Job> generate()
     {
-        Job j;
-        j.duration = m_distribution(m_generator);
-        j.frame_index = m_frame_count;
+        std::shared_ptr<Job> j = std::make_shared<Job>();
+        j->duration = m_distribution(m_generator);
+        j->frame_index = m_frame_count;
         m_frame_count += 1;
         return j;
     }
 
-    Job pop_job()
+    std::shared_ptr<Job> pop_job()
     {
         assert(!m_job_queue.empty());
-        Job j = m_job_queue.front();
+        std::shared_ptr<Job> j = m_job_queue.front();
         m_job_queue.pop_front();
         m_job_queue.push_back(generate());
         return j;
@@ -181,7 +181,7 @@ private:
     std::uniform_real_distribution<> m_distribution;
 
     std::vector<Core> m_cores;
-    std::deque<Job> m_job_queue;
+    std::deque<std::shared_ptr<Job>> m_job_queue;
     std::deque<int> m_frame_pool;
     std::vector<TimeBox> m_timeboxes;
 };
@@ -257,7 +257,7 @@ void DrawVisualizer()
 
     for (auto& j : simulator->get_queue())
     {
-        ImGui::BulletText("Job: %d, duration = %f", j.frame_index, j.duration);
+        ImGui::BulletText("Job: %d, duration = %f", j->frame_index, j->duration);
     }
     ImGui::End();
 }
