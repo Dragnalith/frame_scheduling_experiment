@@ -10,8 +10,6 @@
 namespace
 {
 
-const ImVec2 g_Origin(10.f, 50.f);
-constexpr float g_Height = 20.f;
 ImU32 g_White = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 ImU32 g_Green = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 ImU32 g_Red = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
@@ -34,21 +32,23 @@ ImU32 g_Colors[] = {
     g_Grey
 };
 
-int g_CoreNumber = 4;
-int g_FramePoolSize = 4;
-float g_TimeBoxAverageSize = 100.f;
-int g_TimeBoxNumber = 100;
+SimulationOption g_SimOption;
+SimulationOption g_LastSimOption;
+
+ControlOption g_ControlOption;
+
+DisplayOption g_DisplayOption;
 
 template<class T, size_t N>
 constexpr size_t array_size(T(&)[N]) { return N; }
 
 ImVec2 TimeBoxP0(const TimeBox& timebox)
 {
-    return ImVec2(timebox.start_time, timebox.core_index * g_Height);
+    return ImVec2(timebox.start_time, timebox.core_index * g_DisplayOption.Height);
 }
 ImVec2 TimeBoxP1(const TimeBox& timebox)
 {
-    return TimeBoxP0(timebox) + ImVec2(timebox.end_time - timebox.start_time, g_Height);
+    return TimeBoxP0(timebox) + ImVec2(timebox.end_time - timebox.start_time, g_DisplayOption.Height);
 }
 
 ImU32 GetConstrastColor(ImU32 color)
@@ -72,8 +72,10 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
     auto drawList = ImGui::GetWindowDrawList();
     auto win = ImGui::GetWindowPos();
 
-    auto p0 = win + origin + TimeBoxP0(timebox);
-    auto p1 = win + origin + TimeBoxP1(timebox);
+    auto p0 = (win + origin + TimeBoxP0(timebox));
+    auto p1 = (win + origin + TimeBoxP1(timebox));
+    p0.x *= g_DisplayOption.Scale;
+    p1.x *= g_DisplayOption.Scale;
     drawList->AddRectFilled(p0, p1, timebox.color, 3.5f, ImDrawCornerFlags_All);
 
     ImVec2 size = p1 - p0;
@@ -261,36 +263,44 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         return j;
     }
 
+void PushDisabled(bool disabled)
+{
+    if (disabled)
+    {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+    }
+}    
+    
+void PopDisabled(bool disabled)
+{
+    if (disabled)
+    {
+        ImGui::PopItemFlag();
+        ImGui::PopStyleVar();
+    }
+}
+
 
 void DrawVisualizer()
 {
-    bool yes = true;
-    static float stddev = 0.5f;
-    static bool generate = true;
-    static bool step = false;
-    static bool autoStep = false;
     static std::unique_ptr<Simulator> simulator;
 
-    std::mt19937 gen(0);
-    std::uniform_real_distribution<> dis(1.f - stddev, 1.f + stddev);
-    auto random = [&gen, &dis] { return dis(gen); };
-
-
-
-    ImGui::Begin("Frame Centric Simulation", &yes, ImGuiWindowFlags_HorizontalScrollbar);
-    auto origin = ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
-    ImU32 col = 0;
-
-    if (generate)
+    if (g_ControlOption.Restart || g_ControlOption.AutoRestart && (g_LastSimOption != g_SimOption))
     {
-        simulator = std::make_unique<Simulator>(g_CoreNumber, g_FramePoolSize, stddev);
-        generate = false;
+        simulator = std::make_unique<Simulator>(g_SimOption.CoreNum, g_SimOption.FramePoolSize, g_SimOption.Random);
     }
-    if (step || autoStep)
+    g_LastSimOption = g_SimOption;
+
+    if (g_ControlOption.Step || g_ControlOption.AutoStep)
     {
         simulator->step();
-        step = false;
     }
+
+    bool yes = true;
+    ImGui::Begin("Timeline", &yes, ImGuiWindowFlags_HorizontalScrollbar);
+    auto origin = ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+    ImU32 col = 0;
 
     float windowMin = ImGui::GetScrollX();
     float windowMax = windowMin + ImGui::GetWindowSize().x;
@@ -303,38 +313,69 @@ void DrawVisualizer()
             count += 1;
         }
     }
-    simulator->DrawCore(origin);
+    if (g_DisplayOption.ShowCoreTime)
+    {
+        simulator->DrawCore(origin);
+    }
 
     // Add an offset to scroll a bit more than the max of the timeline
-    ImGui::SetCursorPos(simulator->get_max() + ImVec2(100.f, 0.f));
+    auto cursor = simulator->get_max() + ImVec2(100.f, 0.f);
+    cursor.x *= g_DisplayOption.Scale;
+    ImGui::SetCursorPos(cursor);
 
     ImGui::End();
 
 
-    ImGui::Begin("Frame Centric Simulation - Options", &yes);
-    ImGui::SliderInt("Core Number", &g_CoreNumber, 1, 16);
-    ImGui::SliderInt("Frame Pool Size", &g_FramePoolSize, 1, 16);
-    ImGui::SliderFloat("TimeBox Size", &g_TimeBoxAverageSize, 10.f, 200.f);
-    ImGui::SliderInt("TimeBox Number", &g_TimeBoxNumber, 0, 10000);
+    ImGui::Begin("Options", &yes);
+
+    if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::SliderInt("Core Number", &g_SimOption.CoreNum, 1, 16);
+        ImGui::SliderInt("FramePool Size", &g_SimOption.FramePoolSize, 1, 16);
+        ImGui::SliderFloat("Random", &g_SimOption.Random, 0.0f, 0.9f);
+    }
+
+    if (ImGui::CollapsingHeader("Control", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+
+        g_ControlOption.Restart = false;
+        PushDisabled(g_ControlOption.AutoRestart);
+        if (ImGui::Button("Restart"))
+        {
+            g_ControlOption.Restart = true;
+        }
+        PopDisabled(g_ControlOption.AutoRestart);
+
+        ImGui::SameLine();
+        ImGui::Checkbox("Auto Restart", &g_ControlOption.AutoRestart);
+
+        g_ControlOption.Step = false;
+        PushDisabled(g_ControlOption.AutoStep);
+        if (ImGui::Button("Step"))
+        {
+            g_ControlOption.Step = true;
+        }
+        PopDisabled(g_ControlOption.AutoStep);
+
+        ImGui::SameLine();
+        ImGui::Checkbox("Auto Step", &g_ControlOption.AutoStep);
+    }
+
+    if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Checkbox("Show Core Time", &g_DisplayOption.ShowCoreTime);
+        ImGui::SliderFloat("Height", &g_DisplayOption.Height, 5.f, 40.f);
+        ImGui::SliderFloat("Scale", &g_DisplayOption.Scale, 1.f, 3.f);
+    }
+
+    ImGui::Separator();
     ImGui::Text("Rendered Count %d", count);
-
-    //static float average = 1.f;
-    //ImGui::SliderFloat("Average", &average, 0.f, 3.f);
-    ImGui::SliderFloat("Standard Deviation", &stddev, 0.0f, 0.9f);
-    if (ImGui::Button("Simulate"))
-    {
-        generate = true;
-    }
-    if (ImGui::Button("Step"))
-    {
-        step = true;
-    }
-    ImGui::Checkbox("Auto Step", &autoStep);
-
+    ImGui::Text("Job Queue:");
     for (auto& j : simulator->get_queue())
     {
         ImGui::BulletText("Job: %d, %s (%f)", j->frame_index(), j->name(), j->duration());
     }
+
     ImGui::End();
 }
 
@@ -345,8 +386,9 @@ void Simulator::DrawCore(ImVec2 origin)
 
     for (const auto& c : m_cores)
     {
-        auto p0 = win + origin + ImVec2(c.time, c.index * g_Height);
-        auto p1 = p0 + ImVec2(2.f, g_Height);
+        auto p0 = win + origin + ImVec2(c.time, c.index * g_DisplayOption.Height);
+        p0.x *= g_DisplayOption.Scale;
+        auto p1 = p0 + ImVec2(2.f, g_DisplayOption.Height);
 
         ImU32 color = c.current_job ? g_Red : g_White;
         drawList->AddRectFilled(p0, p1, color);

@@ -10,6 +10,40 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+struct SimulationOption
+{
+    int CoreNum = 2;
+    int FramePoolSize = 2;
+    float Random = 0.f;
+
+    bool operator==(const SimulationOption& other)
+    {
+        return CoreNum == other.CoreNum
+            && FramePoolSize == other.FramePoolSize
+            && Random == other.Random;
+    }
+
+    bool operator!=(const SimulationOption& other)
+    {
+        return ! (*this == other);
+    }
+};
+
+struct ControlOption
+{
+    bool AutoRestart = true;
+    bool Restart = true;
+    bool AutoStep = false;
+    bool Step;
+};
+
+struct DisplayOption
+{
+    bool ShowCoreTime = true;
+    float Height = 20.f;
+    float Scale = 1.f;
+};
+
 class Job;
 
 struct Core

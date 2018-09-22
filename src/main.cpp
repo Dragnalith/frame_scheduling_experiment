@@ -122,7 +122,7 @@ int main(int, char**)
 
         // 1. Show a simple window.
         // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets automatically appears in a window called "Debug".
-        {
+        if (false ) {
             static float f = 0.0f;
             static int counter = 0;
             ImGui::Text("Hello, world!");                           // Display some text (you can use a format string too)
@@ -158,61 +158,9 @@ int main(int, char**)
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         }
 
-        // 2. Show another simple window. In most cases you will use an explicit Begin/End pair to name your windows.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-            ImGui::End();
-        }
-
-        // 3. Show theme window
-        if (show_theme_window)
-        {
-            ImGui::Begin("Themes", &show_theme_window);
-            {
-                // Using the _simplified_ one-liner Combo() api here
-                // See "Combo" section for examples of how to use the more complete BeginCombo()/EndCombo() api.
-                const char* themes[] = { "Light", "Dark", "Default", "Softy" };
-                static int theme_current = 0;
-                static int old_theme_current = 0;
-                ImGui::Combo("theme-combo", &theme_current, themes, IM_ARRAYSIZE(themes));
-                if (old_theme_current != theme_current)
-                {
-                    old_theme_current = theme_current;
-
-                    switch (theme_current)
-                    {
-                        case 0:
-                            ImGui::StyleColorsLight();
-                            break;
-                        case 1:
-                            ImGui::StyleColorsDark();
-                            break;
-                        case 2:
-                            ImGui::StyleColorsClassic();
-                            break;
-                        case 3:
-                            StyleColorsSofty();
-                            break;
-                    }
-                }
-
-                const char* fonts[] = { "Default", "Cousine", "Karla", "Lato" };
-                ImGui::Combo("font-combo", &font_current, fonts, IM_ARRAYSIZE(fonts));
-                if (old_font_current != font_current)
-                {
-                    old_font_current = font_current;
-                }
-            }
-
-            ImGui::End();
-        }
 
         // 4. Show the ImGui demo window. Most of the sample code is in ImGui::ShowDemoWindow(). Read its code to learn more about Dear ImGui!
-        if (show_demo_window)
+        if (true)
         {
             ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver); // Normally user code doesn't need/want to call this because positions are saved in .ini file anyway. Here we just want to make the demo initial state a bit more friendly!
             ImGui::ShowDemoWindow(&show_demo_window);

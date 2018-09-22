@@ -1,6 +1,7 @@
+
+- random seed
+
 # Visualizer
-* Display waiting core
-* Being able to zoom in/out in the X-axis
 * All frame of a frame pool as different color but between a loop change the darkness
 * Display frame full time below the core timeline (use the same color)
 * Improve UI with maybe a correct layout (node editor on top, timeline in the bottom, option on the left)
