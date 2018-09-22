@@ -70,6 +70,13 @@ ImU32 GetConstrastColor(ImU32 color)
 
 void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 {
+    bool is_frame = timebox.frame_index.size() == 0;
+
+    if (is_frame && !g_DisplayOption.ShowFrameTime)
+    {
+        return;
+    }
+
     auto drawList = ImGui::GetWindowDrawList();
     auto win = ImGui::GetWindowPos();
 
@@ -77,10 +84,16 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
     auto p1 = (win + origin + TimeBoxP1(timebox));
     p0.x *= g_DisplayOption.Scale;
     p1.x *= g_DisplayOption.Scale;
+    if (is_frame)
+    {
+        p0.y += 20.f;
+        p1.y += (20.f - g_DisplayOption.Height * 0.5f);
+    }
     drawList->AddRectFilled(p0, p1, timebox.color, 3.5f, ImDrawCornerFlags_All);
 
     ImVec2 size = p1 - p0;
     ImU32 c = GetConstrastColor(~timebox.color);
+
     ImVec2 textFrameSize = ImGui::CalcTextSize(timebox.frame_index.c_str());
     ImVec2 offsetFrame = (size - textFrameSize) * 0.5f;
     offsetFrame.x = 2.f;
@@ -111,13 +124,13 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         return "Prepare";
     }
 
-    bool PrepareJob::try_exec() 
+    bool PrepareJob::try_exec(float time) 
     {
         if (!m_simulator->frame_pool_empty())
         {
-            auto sim = m_simulator;
-            sim->push_job(std::make_shared<RenderJob>(m_simulator, m_frame));
-            auto f = sim->start_frame();
+            m_frame->start_time = time - m_duration;
+            m_simulator->push_job(std::make_shared<RenderJob>(m_simulator, m_frame));
+            auto f = m_simulator->start_frame();
             m_simulator->push_job(std::make_shared<PrepareJob>(m_simulator, f));
             return true;
         }
@@ -143,15 +156,16 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
          return "Render";
      }
 
-     bool RenderJob::try_exec() 
+     bool RenderJob::try_exec(float time) 
      {
-        m_simulator->push_frame(m_frame);
-        return true;
-    }
+         m_frame->end_time = time;
+         m_simulator->push_frame(m_frame);
+         return true;
+     }
 
      bool Core::try_exec()
      {
-         if (current_job && current_job->try_exec())
+         if (current_job && current_job->try_exec(time))
          {
              current_job = nullptr;
              return true;
@@ -258,6 +272,12 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
     void Simulator::push_frame(std::shared_ptr<Frame> f)
     {
+        int index = m_core_count + f->frame_index % m_frame_pool_size;
+
+        std::stringstream s;
+        s << f->end_time - f->start_time;
+        m_timeboxes.emplace_back(index, -1, f->start_time, f->end_time, s.str(), g_Colors[f->frame_index % array_size(g_Colors)]);
+
         m_frame_pool.push_back(f);
     }
 
@@ -379,6 +399,7 @@ void DrawVisualizer()
 
     if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen))
     {
+        ImGui::Checkbox("Show FrameTime", &g_DisplayOption.ShowFrameTime);
         ImGui::Checkbox("Show Core Time", &g_DisplayOption.ShowCoreTime);
         ImGui::SliderFloat("Height", &g_DisplayOption.Height, 5.f, 40.f);
         ImGui::SliderFloat("Scale", &g_DisplayOption.Scale, 1.f, 3.f);

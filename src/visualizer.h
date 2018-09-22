@@ -43,6 +43,7 @@ struct ControlOption
 
 struct DisplayOption
 {
+    bool ShowFrameTime = true;
     bool ShowCoreTime = true;
     float Height = 20.f;
     float Scale = 1.f;
@@ -68,9 +69,12 @@ struct TimeBox
         , name(n)
         , color(c)
     {
-        std::stringstream s;
-        s << frame << "-";
-        frame_index = s.str();
+        if (frame >= 0)
+        {
+            std::stringstream s;
+            s << frame << "-";
+            frame_index = s.str();
+        }
     }
 
     int core_index;
@@ -86,6 +90,8 @@ class Simulator;
 struct Frame
 {
     int frame_index;
+    float start_time;
+    float end_time;
 };
 
 class Job
@@ -100,7 +106,7 @@ public:
     int frame_index() const { return m_frame->frame_index; }
 
     virtual float duration() const = 0;
-    virtual bool try_exec() = 0;
+    virtual bool try_exec(float time) = 0;
     virtual const char* name() const = 0;
 protected:
     Simulator* m_simulator;
@@ -156,7 +162,7 @@ public:
     virtual float duration() const override;
     virtual const char* name() const override;
 
-    virtual bool try_exec() override;
+    virtual bool try_exec(float time) override;
 
 private:
     float m_duration;
@@ -171,7 +177,7 @@ public:
 
     virtual const char* name() const override;
 
-    virtual bool try_exec() override;
+    virtual bool try_exec(float time) override;
 
 private:
     float m_duration;
