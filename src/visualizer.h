@@ -15,12 +15,16 @@ struct SimulationOption
     int CoreNum = 2;
     int FramePoolSize = 2;
     float Random = 0.f;
+    int Seed = 0;
+    bool AutoSeed = true;
 
     bool operator==(const SimulationOption& other)
     {
         return CoreNum == other.CoreNum
             && FramePoolSize == other.FramePoolSize
-            && Random == other.Random;
+            && Random == other.Random
+            && Seed == other.Seed
+            && AutoSeed == other.AutoSeed;
     }
 
     bool operator!=(const SimulationOption& other)
@@ -104,7 +108,7 @@ protected:
 class Simulator
 {
 public:
-    Simulator(int core, int frame_pool, float stddev);
+    Simulator(int core, int frame_pool, int seed, float stddev);
 
     void step();
 

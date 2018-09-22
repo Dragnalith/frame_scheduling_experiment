@@ -6,6 +6,7 @@
 #include <random>
 #include <memory>
 #include <assert.h>
+#include <chrono>
 
 namespace
 {
@@ -140,11 +141,11 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
     }
 
 
-    Simulator::Simulator(int core, int frame_pool, float stddev)
+    Simulator::Simulator(int core, int frame_pool, int seed, float stddev)
         : m_core_count(core)
         , m_frame_pool_size(frame_pool)
         , m_frame_count(0)
-        , m_generator(0)
+        , m_generator(seed)
         , m_distribution((1.f - stddev), (1.f + stddev))
     {
         for (int i = 0; i < m_core_count; i++)
@@ -288,7 +289,12 @@ void DrawVisualizer()
 
     if (g_ControlOption.Restart || g_ControlOption.AutoRestart && (g_LastSimOption != g_SimOption))
     {
-        simulator = std::make_unique<Simulator>(g_SimOption.CoreNum, g_SimOption.FramePoolSize, g_SimOption.Random);
+        int seed = g_SimOption.Seed;
+        if (g_SimOption.AutoSeed)
+        {
+            g_SimOption.Seed = (int) std::chrono::system_clock::now().time_since_epoch().count();
+        }
+        simulator = std::make_unique<Simulator>(g_SimOption.CoreNum, g_SimOption.FramePoolSize, g_SimOption.Seed, g_SimOption.Random);
     }
     g_LastSimOption = g_SimOption;
 
@@ -333,6 +339,11 @@ void DrawVisualizer()
         ImGui::SliderInt("Core Number", &g_SimOption.CoreNum, 1, 16);
         ImGui::SliderInt("FramePool Size", &g_SimOption.FramePoolSize, 1, 16);
         ImGui::SliderFloat("Random", &g_SimOption.Random, 0.0f, 0.9f);
+        PushDisabled(!g_SimOption.AutoSeed);
+        ImS32 step = 1;
+        ImGui::InputScalar("Seed", ImGuiDataType_S32, &g_SimOption.Seed, &step, nullptr);
+        PopDisabled(!g_SimOption.AutoSeed);
+        ImGui::Checkbox("Random Seed", &g_SimOption.AutoSeed);
     }
 
     if (ImGui::CollapsingHeader("Control", ImGuiTreeNodeFlags_DefaultOpen))
