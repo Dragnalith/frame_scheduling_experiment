@@ -92,16 +92,10 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 void DrawVisualizer()
 {
     bool yes = true;
-
-    ImGui::Begin("Frame Centric Simulation - Options", &yes);
-    ImGui::SliderInt("Core Number", &g_CoreNumber, 1, 16);
-    ImGui::SliderFloat("TimeBox Size", &g_TimeBoxAverageSize, 10.f, 200.f);
-
-    //static float average = 1.f;
     static float stddev = 0.5f;
-    //ImGui::SliderFloat("Average", &average, 0.f, 3.f);
-    ImGui::SliderFloat("Standard Deviation", &stddev, 0.0f, 0.9f);
-    ImGui::End();
+    static bool generate = true;
+    static std::vector<TimeBox> timeboxes;
+    static ImVec2 max;
 
     std::mt19937 gen(0);
     std::uniform_real_distribution<> dis(1.f - stddev, 1.f + stddev);
@@ -111,24 +105,59 @@ void DrawVisualizer()
 
     ImGui::Begin("Frame Centric Simulation", &yes, ImGuiWindowFlags_HorizontalScrollbar);
     auto origin = ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
-    auto max = ImGui::GetCursorPos();
     ImU32 col = 0;
-    for (int core = 0; core < g_CoreNumber; core++)
+
+    if (generate)
     {
-        float time = 0.f;
-        for (int t = 0; t < g_TimeBoxNumber; t++)
+        max = ImGui::GetCursorPos();
+        timeboxes.clear();
+        timeboxes.reserve(g_TimeBoxNumber * g_CoreNumber);
+        for (int core = 0; core < g_CoreNumber; core++)
         {
-            float timespan = g_TimeBoxAverageSize * random();
-            auto timebox = TimeBox(core, t, time, time + timespan, "Frame", g_Colors[col]);
-            DrawTimeBox(origin, timebox);
-            time += timespan;
-            max = ImMax(max, TimeBoxP1(timebox));
-            col = (col + 1) % array_size(g_Colors);
+            float time = 0.f;
+            for (int t = 0; t < g_TimeBoxNumber; t++)
+            {
+                float timespan = g_TimeBoxAverageSize * random();
+                auto timebox = TimeBox(core, t, time, time + timespan, "Frame", g_Colors[col]);
+                timeboxes.push_back(timebox);
+                time += timespan;
+                max = ImMax(max, TimeBoxP1(timebox));
+                col = (col + 1) % array_size(g_Colors);
+            }
+        }
+        generate = false;
+    }
+    
+    float windowMin = ImGui::GetScrollX();
+    float windowMax = windowMin + ImGui::GetWindowSize().x;
+    int count = 0;
+    for (const auto& t : timeboxes)
+    {
+        if (t.start_time <= windowMax && t.end_time >= windowMin)
+        {
+            DrawTimeBox(origin, t);
+            count += 1;
         }
     }
 
     // Add an offset to scroll a bit more than the max of the timeline
     ImGui::SetCursorPos(max + ImVec2(100.f, 0.f));
 
+    ImGui::End();
+
+
+    ImGui::Begin("Frame Centric Simulation - Options", &yes);
+    ImGui::SliderInt("Core Number", &g_CoreNumber, 1, 16);
+    ImGui::SliderFloat("TimeBox Size", &g_TimeBoxAverageSize, 10.f, 200.f);
+    ImGui::SliderInt("TimeBox Number", &g_TimeBoxNumber, 0, 10000);
+    ImGui::Text("Rendered Count %d", count);
+
+    //static float average = 1.f;
+    //ImGui::SliderFloat("Average", &average, 0.f, 3.f);
+    ImGui::SliderFloat("Standard Deviation", &stddev, 0.0f, 0.9f);
+    if (ImGui::Button("Simulate"))
+    {
+        generate = true;
+    }
     ImGui::End();
 }
