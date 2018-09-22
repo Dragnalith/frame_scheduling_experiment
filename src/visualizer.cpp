@@ -111,12 +111,20 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         return "Prepare";
     }
 
-    void PrepareJob::exec() 
+    bool PrepareJob::try_exec() 
     {
-        auto sim = m_simulator;
-        sim->push_job(std::make_shared<RenderJob>(m_simulator, m_frame));
-        auto f = sim->start_frame();
-        m_simulator->push_job(std::make_shared<PrepareJob>(m_simulator, f));
+        if (!m_simulator->frame_pool_empty())
+        {
+            auto sim = m_simulator;
+            sim->push_job(std::make_shared<RenderJob>(m_simulator, m_frame));
+            auto f = sim->start_frame();
+            m_simulator->push_job(std::make_shared<PrepareJob>(m_simulator, f));
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     RenderJob::RenderJob(Simulator* sim, std::shared_ptr<Frame> f)
@@ -135,10 +143,22 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
          return "Render";
      }
 
-     void RenderJob::exec() 
+     bool RenderJob::try_exec() 
      {
         m_simulator->push_frame(m_frame);
+        return true;
     }
+
+     bool Core::try_exec()
+     {
+         if (current_job && current_job->try_exec())
+         {
+             current_job = nullptr;
+             return true;
+         }
+
+         return false;
+     }
 
 
     Simulator::Simulator(int core, int frame_pool, int seed, float stddev)
@@ -170,38 +190,27 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
     {
         if (m_job_queue.empty())
         {
-            // Find the latest core which has a job to execute
-            Core* min_core = nullptr;
-            for (auto& c : m_cores)
+            std::sort(m_cores.begin(), m_cores.end(), [](auto& a, auto& b) -> bool{
+                return a.time < b.time;
+            });
+
+            Core* core = nullptr;
+            for (int i = 0; i < m_cores.size(); i++)
             {
-                if (c.current_job)
+                if (m_cores[i].try_exec())
                 {
-                    if (min_core == nullptr)
-                    {
-                        min_core = &c;
-                    }
-                    else if
-                    (c.time < min_core->time)
-                    {
-                        min_core = &c;
-                    }
+                    core = &m_cores[i];
+                    break;
                 }
             }
-            
-            // If assert break, it is a deadlock
-            assert(min_core != nullptr);
 
-            min_core->current_job->exec();
-            min_core->current_job = nullptr;
+            assert(core != nullptr);
             
             // Advance the time of all the core which has no job to execute
             // to be equal to min_core.time
-            for (auto& c : m_cores)
+            for (int i = 0; core != &m_cores[i]; i++)
             {
-                if (!c.current_job)
-                {
-                    c.time = min_core->time;
-                }
+                m_cores[i].time = core->time;
             }
         }
         else
@@ -215,11 +224,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
                 }
             }
 
-            if (min_core->current_job)
-            {
-                min_core->current_job->exec();
-                min_core->current_job = nullptr;
-            }
+            min_core->try_exec();
 
             std::shared_ptr<Job> j = pop_job();
 

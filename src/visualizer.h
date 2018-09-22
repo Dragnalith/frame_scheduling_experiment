@@ -55,6 +55,8 @@ struct Core
     int index;
     float time = 0.f;
     std::shared_ptr<Job> current_job;
+
+    bool try_exec();
 };
 
 struct TimeBox
@@ -98,7 +100,7 @@ public:
     int frame_index() const { return m_frame->frame_index; }
 
     virtual float duration() const = 0;
-    virtual void exec() = 0;
+    virtual bool try_exec() = 0;
     virtual const char* name() const = 0;
 protected:
     Simulator* m_simulator;
@@ -115,6 +117,8 @@ public:
     const std::vector<TimeBox>& get_timeboxes() const { return m_timeboxes; }
     const ImVec2& get_max() const { return m_max; }
     const std::deque<std::shared_ptr<Job>>& get_queue() const { return m_job_queue; }
+
+    bool frame_pool_empty() const { return m_frame_pool.empty(); }
 
     float generate();
 
@@ -152,7 +156,7 @@ public:
     virtual float duration() const override;
     virtual const char* name() const override;
 
-    virtual void exec() override;
+    virtual bool try_exec() override;
 
 private:
     float m_duration;
@@ -167,7 +171,7 @@ public:
 
     virtual const char* name() const override;
 
-    virtual void exec() override;
+    virtual bool try_exec() override;
 
 private:
     float m_duration;
