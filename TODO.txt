@@ -1,0 +1,16 @@
+# Visualizer
+* Being able to zoom in/out in the X-axis
+* All frame of a frame pool as different color but between a loop change the darkness
+* Display frame full time below the core timeline (use the same color)
+* Improve UI with maybe a correct layout (node editor on top, timeline in the bottom, option on the left)
+
+# Simulation
+* Generate in several ticks to keep the application interactive, i.e changing one parameter directly change the result
+* Re-generate set the scroll bar to 0 
+* Can change the size of the frame pool
+
+# Scheduler
+* Force synchronization on external event (like input or vsync), and make sure you can dynamically resize
+* Timebox can depends on the same time of a preceding frame
+* Generate frame pattern from node editor
+*
