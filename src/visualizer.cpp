@@ -49,7 +49,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
     auto p0 = win + origin + TimeBoxP0(timebox);
     auto p1 = win + origin + TimeBoxP1(timebox);
-    drawList->AddRectFilled(p0, p1, timebox.color);
+    drawList->AddRectFilled(p0, p1, timebox.color, 3.5f, ImDrawCornerFlags_All);
 }
 
 }
