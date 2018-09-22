@@ -1,4 +1,5 @@
 # Visualizer
+* Display Core number and line to easily see core line
 * All frame of a frame pool as different color but between a loop change the darkness
 * Display frame full time below the core timeline (use the same color)
 * Improve UI with maybe a correct layout (node editor on top, timeline in the bottom, option on the left)

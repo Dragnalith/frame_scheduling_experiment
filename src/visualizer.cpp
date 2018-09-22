@@ -191,7 +191,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         if (m_job_queue.empty())
         {
             std::sort(m_cores.begin(), m_cores.end(), [](auto& a, auto& b) -> bool{
-                return a.time < b.time;
+                return a.time < b.time || (a.time == b.time && a.index < b.index);
             });
 
             Core* core = nullptr;
