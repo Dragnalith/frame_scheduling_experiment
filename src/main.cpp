@@ -4,6 +4,7 @@
 // (GL3W is a helper library to access OpenGL functions since there is no standard header to access modern OpenGL functions easily. Alternatives are GLEW, Glad, etc.)
 
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include <stdio.h>
@@ -11,6 +12,8 @@
 //#include <glew.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+#include "visualizer.h"
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -115,6 +118,7 @@ int main(int, char**)
                 break;
         }
 
+        DrawVisualizer();
 
         // 1. Show a simple window.
         // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets automatically appears in a window called "Debug".

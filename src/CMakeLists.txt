@@ -6,6 +6,8 @@ list(APPEND MAIN_APP_SOURCES
         glad/glad.h
         glad/glad.c
         KHR/khrplatform.h
+        visualizer.h
+        visualizer.cpp
         )
 
 set(MAIN_APP_LIBRARIES
@@ -20,6 +22,7 @@ list(APPEND MAIN_APP_INCLUDE_DIRS
 
 set(NAME fcsim)
 add_executable(${NAME} ${MAIN_APP_SOURCES})
+target_compile_definitions(${NAME} PUBLIC IMGUI_DEFINE_MATH_OPERATORS)
 target_include_directories(${NAME} PUBLIC ${MAIN_APP_INCLUDE_DIRS})
 target_link_libraries(${NAME} ${MAIN_APP_LIBRARIES})
 
