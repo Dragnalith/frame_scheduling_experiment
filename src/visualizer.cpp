@@ -46,6 +46,23 @@ ImVec2 TimeBoxP1(const TimeBox& timebox)
 {
     return TimeBoxP0(timebox) + ImVec2(timebox.end_time - timebox.start_time, g_Height);
 }
+
+ImU32 GetConstrastColor(ImU32 color)
+{
+    int a0 = (color & 0x000000ff) >= 128 ? 1 : 0;
+    int a1 = ((color >> 8) & 0x000000ff) >= 128 ? 1 : 0;
+    int a2 = ((color >> 16) & 0x000000ff) >= 128 ? 1 : 0;
+
+    if (a0 + a1 + a2 < 2)
+    {
+        return g_Black;
+    }
+    else
+    {
+        return g_White;
+    }
+}
+
 void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 {
     auto drawList = ImGui::GetWindowDrawList();
@@ -56,7 +73,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
     drawList->AddRectFilled(p0, p1, timebox.color, 3.5f, ImDrawCornerFlags_All);
 
     ImVec2 size = p1 - p0;
-    ImU32 c = 0xff000000 | ~timebox.color;
+    ImU32 c = GetConstrastColor(~timebox.color);
     ImVec2 textFrameSize = ImGui::CalcTextSize(timebox.frame_index.c_str());
     ImVec2 offsetFrame = (size - textFrameSize) * 0.5f;
     offsetFrame.x = 2.f;
@@ -88,7 +105,7 @@ void DrawVisualizer()
         for (int t = 0; t < g_TimeBoxNumber; t++)
         {
             float timespan = 70.f * random();
-            auto timebox = TimeBox(core, t, time, time + timespan, "Very Very Long Hello World", g_Colors[col]);
+            auto timebox = TimeBox(core, t, time, time + timespan, "Frame", g_Colors[col]);
             DrawTimeBox(origin, timebox);
             time += timespan;
             max = ImMax(max, TimeBoxP1(timebox));
