@@ -3,6 +3,8 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include <random>
+
 namespace
 {
 
@@ -29,7 +31,7 @@ ImU32 g_Colors[] = {
 };
 
 int g_CoreNumber = 4;
-int g_TimeBoxNumber = 21 * 7;
+int g_TimeBoxNumber = 700;
 
 template<class T, size_t N>
 constexpr size_t array_size(T(&)[N]) { return N; }
@@ -56,7 +58,10 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
 void DrawVisualizer()
 {
-    // FCSIM
+    std::mt19937 gen(0);
+    std::uniform_real_distribution<> dis(1.2, 2.0);
+    auto random = [&gen, &dis] { return dis(gen); };
+
     bool yes = true;
     ImGui::Begin("Frame Centric Simulation", &yes, ImGuiWindowFlags_HorizontalScrollbar);
     auto origin = ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
@@ -67,7 +72,7 @@ void DrawVisualizer()
         float time = 0.f;
         for (int t = 0; t < g_TimeBoxNumber; t++)
         {
-            float timespan = 50.f;
+            float timespan = 30.f * random();
             auto timebox = TimeBox(core, time, time + timespan, g_Colors[col]);
             DrawTimeBox(origin, timebox);
             time += timespan;
@@ -76,7 +81,8 @@ void DrawVisualizer()
         }
     }
 
-    ImGui::SetCursorPos(max);
+    // Add an offset to scroll a bit more than the max of the timeline
+    ImGui::SetCursorPos(max + ImVec2(100.f, 0.f));
 
     ImGui::End();
 }
