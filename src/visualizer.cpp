@@ -114,12 +114,12 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
     {
         return m_duration;
     }
-    const char* PrepareJob::name() const 
+    const char* PrepareJob::name() const
     {
         return "Prepare";
     }
 
-    bool PrepareJob::try_exec(float time) 
+    bool PrepareJob::try_exec(float time)
     {
         if (!m_simulator->frame_pool_empty())
         {
@@ -127,6 +127,57 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
             m_simulator->push_job(std::make_shared<RenderJob>(m_simulator, m_frame));
             auto f = m_simulator->start_frame();
             m_simulator->push_job(std::make_shared<PrepareJob>(m_simulator, f));
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    PatternJob::PatternJob(std::shared_ptr<JobType> type, Simulator* sim, std::shared_ptr<Frame> f)
+        : Job(sim, f)
+        , m_type(type)
+    {
+        m_duration = m_type->duration * m_simulator->generate();
+
+    }
+
+    float PatternJob::duration() const
+    {
+        return m_duration;
+    }
+    const char* PatternJob::name() const
+    {
+        return m_type->name;
+    }
+
+    bool PatternJob::try_exec(float time)
+    {
+        bool cond = !m_type->generateNextFrame || m_type->generateNextFrame && !m_simulator->frame_pool_empty();
+
+        if (cond)
+        {
+            if (m_type->isFirst)
+            {
+                m_frame->start_time = time - m_duration;
+            }
+            if (m_type->next)
+            {
+                m_simulator->push_job(std::make_shared<PatternJob>(m_type->next, m_simulator, m_frame));
+            }
+
+            if (m_type->generateNextFrame)
+            {
+                auto f = m_simulator->start_frame();
+                m_simulator->push_job(std::make_shared<PatternJob>(App::get().Pattern.first, m_simulator, f));
+            }
+
+            if (m_type->releaseFrame)
+            {
+                m_frame->end_time = time;
+                m_simulator->push_frame(m_frame);
+            }
             return true;
         }
         else
@@ -192,55 +243,61 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         }
 
         auto f = start_frame();
-        push_job(std::make_shared<PrepareJob>(this, f));
+        push_job(std::make_shared<PatternJob>(App::get().Pattern.first, this, f));
     }
 
     void Simulator::step()
     {
-        if (m_job_queue.empty())
+        std::sort(m_cores.begin(), m_cores.end(), [](auto& a, auto& b) -> bool {
+            return a.time < b.time || (a.time == b.time && a.index < b.index);
+        });
+
+        // Find the first core available
+        Core* latest_available_core = nullptr;
+        for (int i = 0; i < m_cores.size(); i++)
+        {
+            if (!m_cores[i].current_job)
+            {
+                latest_available_core = &m_cores[i];
+                break;
+            }
+        }
+
+        if (latest_available_core == nullptr || m_job_queue.empty())
         {
             std::sort(m_cores.begin(), m_cores.end(), [](auto& a, auto& b) -> bool{
                 return a.time < b.time || (a.time == b.time && a.index < b.index);
             });
 
-            Core* core = nullptr;
+            Core* latest_busy_core = nullptr;
             for (int i = 0; i < m_cores.size(); i++)
             {
                 if (m_cores[i].try_exec())
                 {
-                    core = &m_cores[i];
+                    latest_busy_core = &m_cores[i];
                     break;
                 }
             }
 
-            assert(core != nullptr);
+            assert(latest_busy_core != nullptr);
             
             // Advance the time of all the core which has no job to execute
             // to be equal to min_core.time
-            for (int i = 0; core != &m_cores[i]; i++)
+            for (int i = 0; latest_busy_core != &m_cores[i]; i++)
             {
-                m_cores[i].time = core->time;
+                m_cores[i].time = latest_busy_core->time;
             }
         }
         else
         {
-            auto* min_core = &m_cores[0];
-            for (auto& c : m_cores)
-            {
-                if (c.time < min_core->time)
-                {
-                    min_core = &c;
-                }
-            }
-
-            min_core->try_exec();
+            assert(latest_available_core != nullptr);
 
             std::shared_ptr<Job> j = pop_job();
 
-            m_timeboxes.emplace_back(min_core->index, j->frame_index(), min_core->time, min_core->time + j->duration(), j->name(), g_Colors[j->frame_index() % array_size(g_Colors)]);
+            m_timeboxes.emplace_back(latest_available_core->index, j->frame_index(), latest_available_core->time, latest_available_core->time + j->duration(), j->name(), g_Colors[j->frame_index() % array_size(g_Colors)]);
             m_max = ImMax(m_max, TimeBoxP1(m_timeboxes.back()));
-            min_core->time += j->duration();
-            min_core->current_job = j;
+            latest_available_core->time += j->duration();
+            latest_available_core->current_job = j;
         }
     }
 

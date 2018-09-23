@@ -16,6 +16,9 @@
 #include <string>
 #include <unordered_map>
 
+#include "node_editor.h"
+#include "app.h"
+
 namespace ed = ax::NodeEditor;
 
 // NB: You can use math functions/operators on ImVec2 if you #define IMGUI_DEFINE_MATH_OPERATORS and #include "imgui_internal.h"
@@ -34,52 +37,23 @@ static uint32_t allocated_id()
     return g_Id;
 }
 
+JobType::JobType()
+{
+    nid = allocated_id();
+    iid = allocated_id();
+    oid = allocated_id();
+    lid = allocated_id();
+    strcpy(name,"No Name");
+
+    App::get().Id2Node.emplace(iid, nid);
+    App::get().Id2Node.emplace(oid, nid);
+    App::get().Id2Node.emplace(lid, nid);
+}
+
+
 struct JobType;
-std::unordered_map<uint32_t, std::shared_ptr<JobType>> g_Jobs;
 
-std::unordered_map<uint32_t, uint32_t> g_Id2Node;
 
-struct JobType
-{
-    JobType()
-    {
-        nid = allocated_id();
-        iid = allocated_id();
-        oid = allocated_id();
-        lid = allocated_id();
-
-        g_Id2Node.emplace(iid, nid);
-        g_Id2Node.emplace(oid, nid);
-        g_Id2Node.emplace(lid, nid);
-    }
-
-    bool isFirst = false;
-    std::string name = "No Name";
-    std::shared_ptr<JobType> next = nullptr;
-    float duration = 50.f;
-
-    uint32_t nid;
-    uint32_t lid;
-    uint32_t iid;
-    uint32_t oid;
-}; 
-
-struct FramePattern
-{
-    FramePattern()
-    {
-        auto j = std::make_shared<JobType>();
-        j->isFirst = true;
-        j->name.reserve(255);
-        j->name = "Start Frame";
-        first = j;
-        g_Jobs.emplace(j->nid, j);
-    }
-
-    std::shared_ptr<JobType> first;
-};
-
-FramePattern g_Frame;
 
 void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
 {
@@ -102,20 +76,26 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
     int uniqueId = 1;
     // Start drawing nodes.
 
-    for(auto& pair : g_Jobs)
+    for(auto& pair : App::get().Types)
     {
         auto& j = pair.second;
         ed::BeginNode(j->nid);
+        ImGui::PushID(j->nid);
+
         ImGui::PushItemWidth(100.f);
-        ImGui::InputText("Name", &j->name[0], 255);
+        ImGui::InputText("Name", j->name, 255);
         ImGui::DragFloat("Duration", &j->duration, 1.f, 10.f, 300.f);
+        ImGui::Checkbox("Generate Next Frame", &j->generateNextFrame);
+        ImGui::Checkbox("Release Frame", &j->releaseFrame);
+        ImGui::Text("%u, %u, %u, %u", j->nid, j->lid, j->iid, j->oid);
+        ImGui::PopID();
         ed::BeginPin(j->iid, ed::PinKind::Input);
         ImGui::Text("->");
         ed::PinPivotAlignment(ImVec2(0.f, 0.5f));
         ed::PinPivotSize(ImVec2(0.f, 0.f));
         ed::EndPin();
         ImGui::SameLine();
-        ImGui::Text(j->name.c_str());
+        ImGui::Text(j->name);
         ImGui::SameLine();
 
         ed::BeginPin(j->oid, ed::PinKind::Output);
@@ -129,7 +109,7 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
         ed::EndNode();
 
     }
-    for (auto& pair : g_Jobs)
+    for (auto& pair : App::get().Types)
     {
         auto& j = pair.second;
         if (j->next)
@@ -143,8 +123,8 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
         ed::PinId startPinId = 0, endPinId = 0;
         if (ed::QueryNewLink(&startPinId, &endPinId))
         {
-            auto in = g_Jobs[g_Id2Node[(uint32_t) startPinId]];
-            auto out = g_Jobs[g_Id2Node[(uint32_t) endPinId]];
+            auto in = App::get().Types[App::get().Id2Node[(uint32_t) startPinId]];
+            auto out = App::get().Types[App::get().Id2Node[(uint32_t) endPinId]];
 
 
             if (in->iid == (uint32_t) startPinId)
@@ -216,7 +196,7 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
         {
             auto j = std::make_shared<JobType>();
             ed::SetNodePosition(j->nid, mousePos);
-            g_Jobs.emplace(j->nid, j);
+            App::get().Types.emplace(j->nid, j);
         }
 
         ImGui::EndPopup();

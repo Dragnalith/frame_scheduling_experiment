@@ -170,6 +170,23 @@ private:
     float m_duration;
 };
 
+struct JobType;
+
+class PatternJob : public Job
+{
+public:
+    PatternJob(std::shared_ptr<JobType> type, Simulator* sim, std::shared_ptr<Frame> f);
+
+    virtual float duration() const override;
+    virtual const char* name() const override;
+
+    virtual bool try_exec(float time) override;
+
+private:
+    std::shared_ptr<JobType> m_type;
+    float m_duration;
+};
+
 class RenderJob : public Job
 {
 public:

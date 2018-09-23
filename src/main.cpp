@@ -18,9 +18,35 @@
 #include "visualizer.h"
 #include "app.h"
 
+App* App::s_App;
+
+void App::init()
+{
+    s_App = new App();
+
+    auto j = std::make_shared<JobType>();
+    j->isFirst = true;
+    j->generateNextFrame = true;
+    strcpy(j->name, "Prepare");
+    s_App->Pattern.first = j;
+    App::get().Types.emplace(j->nid, j);
+
+    auto j2 = std::make_shared<JobType>();
+    j2->duration = 200.f;
+    strcpy(j2->name, "Render");
+    App::get().Types.emplace(j2->nid, j2);
+    j->next = j2;
+
+    auto j3 = std::make_shared<JobType>();
+    j3->releaseFrame = true;
+    j3->duration = 60.f;
+    strcpy(j3->name, "Kick");
+    App::get().Types.emplace(j3->nid, j3);
+    j2->next = j3;
+}
+
 App& App::get() {
-    static App app;
-    return app;
+    return *s_App;
 }
 
 static void glfw_error_callback(int error, const char* description)
@@ -36,6 +62,8 @@ static ed::EditorContext* g_Context = nullptr;
 
 int main(int, char**)
 {
+    App::init();
+
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
