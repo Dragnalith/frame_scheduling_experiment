@@ -16,6 +16,12 @@
 #include <GLFW/glfw3.h>
 
 #include "visualizer.h"
+#include "app.h"
+
+App& App::get() {
+    static App app;
+    return app;
+}
 
 static void glfw_error_callback(int error, const char* description)
 {

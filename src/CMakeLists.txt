@@ -10,6 +10,7 @@ list(APPEND MAIN_APP_SOURCES
         visualizer.cpp
         node_editor.cpp
         node_editor.h
+        app.h
         )
 
 set(MAIN_APP_LIBRARIES

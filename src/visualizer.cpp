@@ -3,6 +3,8 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include "app.h"
+
 #include <random>
 #include <memory>
 #include <assert.h>
@@ -33,23 +35,16 @@ ImU32 g_Colors[] = {
     g_Grey
 };
 
-SimulationOption g_SimOption;
-SimulationOption g_LastSimOption;
-
-ControlOption g_ControlOption;
-
-DisplayOption g_DisplayOption;
-
 template<class T, size_t N>
 constexpr size_t array_size(T(&)[N]) { return N; }
 
 ImVec2 TimeBoxP0(const TimeBox& timebox)
 {
-    return ImVec2(timebox.start_time, timebox.core_index * g_DisplayOption.Height);
+    return ImVec2(timebox.start_time, timebox.core_index * App::get().DisplayOption.Height);
 }
 ImVec2 TimeBoxP1(const TimeBox& timebox)
 {
-    return TimeBoxP0(timebox) + ImVec2(timebox.end_time - timebox.start_time, g_DisplayOption.Height);
+    return TimeBoxP0(timebox) + ImVec2(timebox.end_time - timebox.start_time, App::get().DisplayOption.Height);
 }
 
 ImU32 GetConstrastColor(ImU32 color)
@@ -72,7 +67,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 {
     bool is_frame = timebox.frame_index.size() == 0;
 
-    if (is_frame && !g_DisplayOption.ShowFrameTime)
+    if (is_frame && !App::get().DisplayOption.ShowFrameTime)
     {
         return;
     }
@@ -82,12 +77,12 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
     auto p0 = (win + origin + TimeBoxP0(timebox));
     auto p1 = (win + origin + TimeBoxP1(timebox));
-    p0.x *= g_DisplayOption.Scale;
-    p1.x *= g_DisplayOption.Scale;
+    p0.x *= App::get().DisplayOption.Scale;
+    p1.x *= App::get().DisplayOption.Scale;
     if (is_frame)
     {
         p0.y += 20.f;
-        p1.y += (20.f - g_DisplayOption.Height * 0.5f);
+        p1.y += (20.f - App::get().DisplayOption.Height * 0.5f);
     }
     drawList->AddRectFilled(p0, p1, timebox.color, 3.5f, ImDrawCornerFlags_All);
 
@@ -312,18 +307,18 @@ void DrawVisualizer()
 {
     static std::unique_ptr<Simulator> simulator;
 
-    if (g_ControlOption.Restart || g_ControlOption.AutoRestart && (g_LastSimOption != g_SimOption))
+    if (App::get().ControlOption.Restart || App::get().ControlOption.AutoRestart && (App::get().LastSimOption != App::get().SimOption))
     {
-        int seed = g_SimOption.Seed;
-        if (g_SimOption.AutoSeed)
+        int seed = App::get().SimOption.Seed;
+        if (App::get().SimOption.AutoSeed)
         {
-            g_SimOption.Seed = (int) std::chrono::system_clock::now().time_since_epoch().count();
+            App::get().SimOption.Seed = (int) std::chrono::system_clock::now().time_since_epoch().count();
         }
-        simulator = std::make_unique<Simulator>(g_SimOption.CoreNum, g_SimOption.FramePoolSize, g_SimOption.Seed, g_SimOption.Random);
+        simulator = std::make_unique<Simulator>(App::get().SimOption.CoreNum, App::get().SimOption.FramePoolSize, App::get().SimOption.Seed, App::get().SimOption.Random);
     }
-    g_LastSimOption = g_SimOption;
+    App::get().LastSimOption = App::get().SimOption;
 
-    if (g_ControlOption.Step || g_ControlOption.AutoStep)
+    if (App::get().ControlOption.Step || App::get().ControlOption.AutoStep)
     {
         simulator->step();
     }
@@ -344,14 +339,14 @@ void DrawVisualizer()
             count += 1;
         }
     }
-    if (g_DisplayOption.ShowCoreTime)
+    if (App::get().DisplayOption.ShowCoreTime)
     {
         simulator->DrawCore(origin);
     }
 
     // Add an offset to scroll a bit more than the max of the timeline
     auto cursor = simulator->get_max() + ImVec2(100.f, 0.f);
-    cursor.x *= g_DisplayOption.Scale;
+    cursor.x *= App::get().DisplayOption.Scale;
     ImGui::SetCursorPos(cursor);
 
     ImGui::End();
@@ -361,48 +356,48 @@ void DrawVisualizer()
 
     if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::SliderInt("Core Number", &g_SimOption.CoreNum, 1, 16);
-        ImGui::SliderInt("FramePool Size", &g_SimOption.FramePoolSize, 1, 16);
-        ImGui::SliderFloat("Random", &g_SimOption.Random, 0.0f, 0.9f);
-        PushDisabled(!g_SimOption.AutoSeed);
+        ImGui::SliderInt("Core Number", &App::get().SimOption.CoreNum, 1, 16);
+        ImGui::SliderInt("FramePool Size", &App::get().SimOption.FramePoolSize, 1, 16);
+        ImGui::SliderFloat("Random", &App::get().SimOption.Random, 0.0f, 0.9f);
+        PushDisabled(!App::get().SimOption.AutoSeed);
         ImS32 step = 1;
-        ImGui::InputScalar("Seed", ImGuiDataType_S32, &g_SimOption.Seed, &step, nullptr);
-        PopDisabled(!g_SimOption.AutoSeed);
-        ImGui::Checkbox("Random Seed", &g_SimOption.AutoSeed);
+        ImGui::InputScalar("Seed", ImGuiDataType_S32, &App::get().SimOption.Seed, &step, nullptr);
+        PopDisabled(!App::get().SimOption.AutoSeed);
+        ImGui::Checkbox("Random Seed", &App::get().SimOption.AutoSeed);
     }
 
     if (ImGui::CollapsingHeader("Control", ImGuiTreeNodeFlags_DefaultOpen))
     {
 
-        g_ControlOption.Restart = false;
-        PushDisabled(g_ControlOption.AutoRestart);
+        App::get().ControlOption.Restart = false;
+        PushDisabled(App::get().ControlOption.AutoRestart);
         if (ImGui::Button("Restart"))
         {
-            g_ControlOption.Restart = true;
+            App::get().ControlOption.Restart = true;
         }
-        PopDisabled(g_ControlOption.AutoRestart);
+        PopDisabled(App::get().ControlOption.AutoRestart);
 
         ImGui::SameLine();
-        ImGui::Checkbox("Auto Restart", &g_ControlOption.AutoRestart);
+        ImGui::Checkbox("Auto Restart", &App::get().ControlOption.AutoRestart);
 
-        g_ControlOption.Step = false;
-        PushDisabled(g_ControlOption.AutoStep);
+        App::get().ControlOption.Step = false;
+        PushDisabled(App::get().ControlOption.AutoStep);
         if (ImGui::Button("Step"))
         {
-            g_ControlOption.Step = true;
+            App::get().ControlOption.Step = true;
         }
-        PopDisabled(g_ControlOption.AutoStep);
+        PopDisabled(App::get().ControlOption.AutoStep);
 
         ImGui::SameLine();
-        ImGui::Checkbox("Auto Step", &g_ControlOption.AutoStep);
+        ImGui::Checkbox("Auto Step", &App::get().ControlOption.AutoStep);
     }
 
     if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::Checkbox("Show FrameTime", &g_DisplayOption.ShowFrameTime);
-        ImGui::Checkbox("Show Core Time", &g_DisplayOption.ShowCoreTime);
-        ImGui::SliderFloat("Height", &g_DisplayOption.Height, 5.f, 40.f);
-        ImGui::SliderFloat("Scale", &g_DisplayOption.Scale, 1.f, 3.f);
+        ImGui::Checkbox("Show FrameTime", &App::get().DisplayOption.ShowFrameTime);
+        ImGui::Checkbox("Show Core Time", &App::get().DisplayOption.ShowCoreTime);
+        ImGui::SliderFloat("Height", &App::get().DisplayOption.Height, 5.f, 40.f);
+        ImGui::SliderFloat("Scale", &App::get().DisplayOption.Scale, 1.f, 3.f);
     }
 
     ImGui::Separator();
@@ -423,9 +418,9 @@ void Simulator::DrawCore(ImVec2 origin)
 
     for (const auto& c : m_cores)
     {
-        auto p0 = win + origin + ImVec2(c.time, c.index * g_DisplayOption.Height);
-        p0.x *= g_DisplayOption.Scale;
-        auto p1 = p0 + ImVec2(2.f, g_DisplayOption.Height);
+        auto p0 = win + origin + ImVec2(c.time, c.index * App::get().DisplayOption.Height);
+        p0.x *= App::get().DisplayOption.Scale;
+        auto p1 = p0 + ImVec2(2.f, App::get().DisplayOption.Height);
 
         ImU32 color = c.current_job ? g_Red : g_White;
         drawList->AddRectFilled(p0, p1, color);
