@@ -93,7 +93,7 @@ int main(int, char**)
 
     ed::Config config;
     config.SettingsFile = "Simple.json";
-    g_Context = ed::CreateEditor(&config);
+    g_Context = ed::CreateEditor();
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -130,6 +130,7 @@ int main(int, char**)
 
         bool yes = true;
         ShowExampleAppCustomNodeGraph(&yes, g_Context);
+        //OtherNodeEditor(&yes);
         DrawVisualizer();
 
         // 1. Show a simple window.

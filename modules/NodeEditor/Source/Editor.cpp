@@ -1206,6 +1206,10 @@ bool ed::EditorContext::DoLink(LinkId id, PinId startPinId, PinId endPinId, ImU3
     auto startPin = FindPin(startPinId);
     auto endPin   = FindPin(endPinId);
 
+    bool test1 = !startPin;
+    bool test2 = !startPin->m_IsLive;
+    bool test3 = !endPin;
+    bool test4 = !endPin->m_IsLive;
     if (!startPin || !startPin->m_IsLive || !endPin || !endPin->m_IsLive)
         return false;
 
