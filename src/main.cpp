@@ -7,6 +7,8 @@
 #include "imgui_internal.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "node_editor.h"
+#include "NodeEditor.h"
 #include <stdio.h>
 //#include <GL/gl3w.h>    // This example is using gl3w to access OpenGL functions. You may freely use any other OpenGL loader such as: glew, glad, glLoadGen, etc.
 //#include <glew.h>
@@ -21,6 +23,10 @@ static void glfw_error_callback(int error, const char* description)
 }
 
 void StyleColorsSofty(ImGuiStyle* dst = NULL);
+
+namespace ed = ax::NodeEditor;
+
+static ed::EditorContext* g_Context = nullptr;
 
 int main(int, char**)
 {
@@ -85,6 +91,10 @@ int main(int, char**)
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+    ed::Config config;
+    config.SettingsFile = "Simple.json";
+    g_Context = ed::CreateEditor(&config);
+
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
@@ -118,6 +128,8 @@ int main(int, char**)
                 break;
         }
 
+        bool yes = true;
+        ShowExampleAppCustomNodeGraph(&yes, g_Context);
         DrawVisualizer();
 
         // 1. Show a simple window.

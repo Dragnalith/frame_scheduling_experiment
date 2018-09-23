@@ -8,11 +8,14 @@ list(APPEND MAIN_APP_SOURCES
         KHR/khrplatform.h
         visualizer.h
         visualizer.cpp
+        node_editor.cpp
+        node_editor.h
         )
 
 set(MAIN_APP_LIBRARIES
         imgui
         glfw
+        NodeEditor
         )
 
 list(APPEND MAIN_APP_INCLUDE_DIRS
