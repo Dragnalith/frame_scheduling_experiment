@@ -610,7 +610,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         // Add an offset to scroll a bit more than the max of the timeline
         auto cursor = get_max();
         cursor.x *= App::get().DisplayOption.Scale;
-        ImGui::SetCursorPos(cursor  + ImVec2(100.f, 0.f));
+        ImGui::SetCursorPos(cursor  + ImVec2(900.f, 0.f));
 
         ImGui::End();
     }

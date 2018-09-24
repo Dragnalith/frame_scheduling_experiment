@@ -53,7 +53,7 @@ struct ControlOption
     bool Keep = true;
     bool Restart = true;
     bool AutoStep = true;
-    int MaxAutoStep = 300;
+    int MaxAutoStep = 5000;
     bool Step;
 };
 
