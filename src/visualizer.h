@@ -8,6 +8,7 @@
 #include <vector>
 #include <memory>
 #include <random>
+#include <unordered_set>
 
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -113,9 +114,11 @@ class Simulator;
 
 struct Frame
 {
-    int frame_index;
-    float start_time;
-    float end_time;
+    int frame_index = -1;
+    float start_time = -1.f;
+    float end_time = -1.f;
+
+    std::unordered_set<uint32_t> finished_node;
 };
 
 class Job
@@ -131,6 +134,7 @@ public:
 
     virtual float duration() const = 0;
     virtual bool try_exec(float time) = 0;
+    virtual bool is_ready() const = 0;
     virtual void before_schedule(float time) = 0;
     virtual const char* name() const = 0;
     virtual bool is_first() const = 0;
@@ -154,7 +158,7 @@ public:
     const ImVec2& get_max() const { return m_max; }
     const std::deque<std::shared_ptr<Job>>& get_queue() const { return m_job_queue; }
 
-    bool frame_pool_empty() const { return m_frame_pool.empty(); }
+    bool frame_pool_empty() const { return m_frame_available.empty(); }
 
     float generate();
 
@@ -164,9 +168,24 @@ public:
 
     void push_frame(std::shared_ptr<Frame> f);
 
+    std::shared_ptr<Frame> get_frame(int index);
+
     std::shared_ptr<Job> pop_job();
 
     void DrawCore(ImVec2 origin);
+
+    bool has_ready_job() {
+
+        for (auto j : m_job_queue)
+        {
+            if (j->is_ready())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     int visible_timebox_count() const { return m_diplayed_timebox; }
 
@@ -191,8 +210,9 @@ private:
     std::uniform_real_distribution<float> m_distribution;
 
     std::vector<Core> m_cores;
+    std::vector<std::shared_ptr<Frame>> m_frames;
     std::deque<std::shared_ptr<Job>> m_job_queue;
-    std::deque<std::shared_ptr<Frame>> m_frame_pool;
+    std::deque<std::shared_ptr<Frame>> m_frame_available;
     std::vector<TimeBox> m_timeboxes;
 };
 
@@ -207,6 +227,7 @@ public:
     virtual const char* name() const override;
     virtual bool is_first() const override;
     virtual bool is_release() const override;
+    virtual bool is_ready() const override;
 
     virtual void before_schedule(float time) override;
     virtual bool try_exec(float time) override;

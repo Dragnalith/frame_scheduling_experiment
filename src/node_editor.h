@@ -19,6 +19,7 @@ struct JobType
 
     bool is_first = false;
     bool generate_next = false;
+    bool wait_previous = false;
     bool release_frame = false;
     char name[255];
     std::shared_ptr<JobType> next = nullptr;

@@ -82,6 +82,7 @@ void DrawNodeEditor(bool* opened)
         ImGui::DragFloat("Duration", &j->duration, 1.f, 10.f, 300.f);
         ImGui::Checkbox("Generate Next Frame", &j->generate_next);
         ImGui::Checkbox("Release Frame", &j->release_frame);
+        ImGui::Checkbox("Wait Previous", &j->wait_previous);
         ImGui::Text("%u, %u, %u, %u", j->nid, j->lid, j->iid, j->oid);
         ImGui::PopID();
         ed::BeginPin(j->iid, ed::PinKind::Input);

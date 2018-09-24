@@ -269,10 +269,26 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         }
     }
 
+    bool PatternJob::is_ready() const
+    {
+        bool is_ready = true;
+        if (m_type->wait_previous && m_frame->frame_index > 0)
+        {
+            auto prev = m_simulator->get_frame(m_frame->frame_index - 1);
+            if (prev)
+            {
+                is_ready = prev->finished_node.find(m_type->nid) != prev->finished_node.end();
+            }
+        }
+
+        return is_ready;
+    }
+
     bool PatternJob::try_exec(float time)
     {
-        bool cond = !m_type->generate_next || m_type->generate_next && !m_simulator->frame_pool_empty();
+        bool can_generate_next = !m_type->generate_next || m_type->generate_next && !m_simulator->frame_pool_empty();
 
+        bool cond = can_generate_next;
         if (cond)
         {
             if (m_type->next)
@@ -291,6 +307,8 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
                 m_frame->end_time = time;
                 m_simulator->push_frame(m_frame);
             }
+
+            m_frame->finished_node.insert(m_type->nid);
             return true;
         }
         else
@@ -328,7 +346,12 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
         for (int i = 0; i < m_frame_pool_size; i++)
         {
-            m_frame_pool.push_back(std::make_shared<Frame>());
+            m_frames.push_back(std::make_shared<Frame>());
+        }
+
+        for (auto f : m_frames)
+        {
+            m_frame_available.push_back(f);
         }
 
         auto f = start_frame(0.f);
@@ -356,7 +379,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
             auto pos = winPos + ImVec2(10.f, 30.f);
             auto size = ImVec2(10.f, 10.f);
             float offset = 15.f;
-            for (int i = 0; i < m_frame_pool.size(); i++)
+            for (int i = 0; i < m_frame_available.size(); i++)
             {
                 drawlist->AddRectFilled(pos, pos + size, 0xffaaaaaa);
                 pos.x += offset;
@@ -435,7 +458,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
             }
         }
 
-        if (latest_available_core == nullptr || m_job_queue.empty())
+        if (latest_available_core == nullptr || !has_ready_job())
         {
             std::sort(m_cores.begin(), m_cores.end(), [](auto& a, auto& b) -> bool{
                 return a.time < b.time || (a.time == b.time && a.index < b.index);
@@ -490,11 +513,23 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         return m_distribution(m_generator);
     }
 
+    std::shared_ptr<Frame> Simulator::get_frame(int index)
+    {
+        for (auto f : m_frames) {
+            if (f->frame_index == index)
+            {
+                return f;
+            }
+        }
+
+        return nullptr;
+    }
+
     std::shared_ptr<Frame> Simulator::start_frame(float time)
     {
-        assert(!m_frame_pool.empty());
-        std::shared_ptr<Frame> f = m_frame_pool.back();
-        m_frame_pool.pop_back();
+        assert(!m_frame_available.empty());
+        std::shared_ptr<Frame> f = m_frame_available.back();
+        m_frame_available.pop_back();
 
         f->frame_index = m_frame_count;
         m_frame_count += 1;
@@ -522,16 +557,36 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         s << f->end_time - f->start_time;
         m_timeboxes.emplace_back(frame_time_core_index, -1, f->start_time, f->end_time, s.str(), g_Colors[f->frame_index % array_size(g_Colors)], TimeBoxType::FrameTime);
 
-        m_frame_pool.push_back(f);
+        m_frame_available.push_back(f);
         m_last_push_time = f->end_time;
+
+        f->frame_index = -1;
+        f->finished_node.clear();
     }
 
     std::shared_ptr<Job> Simulator::pop_job()
     {
-        assert(!m_job_queue.empty());
-        std::shared_ptr<Job> j = m_job_queue.front();
-        m_job_queue.pop_front();
-        return j;
+        assert(has_ready_job());
+
+        std::shared_ptr<Job> job = nullptr;
+        int pos = -1;
+        for (int i = 0; i < m_job_queue.size(); i++)
+        {
+            auto j = m_job_queue.at(i);
+            if (j->is_ready())
+            {
+                job = j;
+                pos = i;
+                break;
+            }
+        }
+
+        assert(job);
+        assert(pos >= 0);
+
+        m_job_queue.erase(m_job_queue.begin() + pos);
+
+        return job;
     }
 
 void PushDisabled(bool disabled)
@@ -679,7 +734,7 @@ void DrawVisualizer()
     ImGui::Text("Job Queue:");
     for (auto& j : App::get().CurrentSimulation->get_queue())
     {
-        ImGui::BulletText("Job: %d, %s (%f)", j->frame_index(), j->name(), j->duration());
+        ImGui::BulletText("Job: %d, %s (%s)", j->frame_index(), j->name(), j->is_ready() ? "ready" : "wait");
     }
 
     ImGui::End();
