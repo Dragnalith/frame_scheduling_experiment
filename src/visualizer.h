@@ -22,6 +22,7 @@ struct SimulationOption
     float Random = 0.f;
     int Seed = 0;
     bool AutoSeed = false;
+    bool PriorityQueue = false;
 
     bool operator==(const SimulationOption& other)
     {
@@ -162,7 +163,7 @@ public:
 
     const std::vector<TimeBox>& get_timeboxes() const { return m_timeboxes; }
     const ImVec2& get_max() const { return m_max; }
-    const std::deque<std::shared_ptr<Job>>& get_queue() const { return m_job_queue; }
+    const std::deque<std::shared_ptr<Job>>& get_queue();
 
     bool frame_pool_empty() const { return m_frame_available.empty(); }
 

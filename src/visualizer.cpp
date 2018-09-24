@@ -751,6 +751,13 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
     {
         assert(has_ready_job());
 
+        if (m_option.PriorityQueue)
+        {
+            std::stable_sort(m_job_queue.begin(), m_job_queue.end(), [](auto a, auto b) {
+                return a->frame_index() < b->frame_index();
+            });
+        }
+
         std::shared_ptr<Job> job = nullptr;
         int pos = -1;
         for (int i = 0; i < m_job_queue.size(); i++)
@@ -877,6 +884,7 @@ void DrawVisualizer()
         ImGui::InputScalar("Seed", ImGuiDataType_S32, &App::get().SimOption.Seed, &step, nullptr);
         PopDisabled(!App::get().SimOption.AutoSeed);
         ImGui::Checkbox("Random Seed", &App::get().SimOption.AutoSeed);
+        ImGui::Checkbox("Priority Queue", &App::get().SimOption.PriorityQueue);
     }
 
     if (ImGui::CollapsingHeader("Control", ImGuiTreeNodeFlags_DefaultOpen))
@@ -954,3 +962,14 @@ const Preset& get_default_preset()
 
 float TimeBox::start() const { return start_time * App::get().DisplayOption.Scale; }
 float TimeBox::end() const { return end_time * App::get().DisplayOption.Scale; }
+
+const std::deque<std::shared_ptr<Job>>& Simulator::get_queue() {
+
+    if (m_option.PriorityQueue)
+    {
+        std::stable_sort(m_job_queue.begin(), m_job_queue.end(), [](auto a, auto b) {
+            return a->frame_index() < b->frame_index();
+        });
+    }
+    return m_job_queue;
+}
