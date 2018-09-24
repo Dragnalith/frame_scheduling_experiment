@@ -1,23 +1,17 @@
 !!! Changing frame pattern does not disturbe the current simulation
 
 # Visualizer
-* Keep timeline, start simulation -> create new timeline you can step
 * When created by end, node has correct position
 * Node have different color
 * Display Core number and line to easily see core line
 * All frame of a frame pool as different color but between a loop change the darkness
-* Improve UI with maybe a correct layout (node editor on top, timeline in the bottom, option on the left)
 * Display the min frame time and max frame time
 
 # Simulation
 * Make impossible to change the frame pattern of the current simulation
 * A job can depends on several one
 * Generate in several ticks to keep the application interactive, i.e changing one parameter directly change the result
-* Re-generate set the scroll bar to 0 
-* Can change the size of the frame pool
 
 # Scheduler
 * Force synchronization on external event (like input or vsync), and make sure you can dynamically resize
 * Timebox can depends on the same time of a preceding frame
-* Generate frame pattern from node editor
-*

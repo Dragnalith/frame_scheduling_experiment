@@ -121,6 +121,7 @@ public:
     Simulator(int core, int frame_pool, int seed, float stddev);
 
     void step();
+    void draw();
 
     const std::vector<TimeBox>& get_timeboxes() const { return m_timeboxes; }
     const ImVec2& get_max() const { return m_max; }
@@ -140,12 +141,20 @@ public:
 
     void DrawCore(ImVec2 origin);
 
+    int visible_timebox_count() const { return m_diplayed_timebox; }
+
+    void freeze(const std::string&name);
 
 private:
     int m_core_count;
     int m_frame_pool_size;
     int m_frame_count;
     ImVec2 m_max;
+
+    int m_diplayed_timebox = 0;
+    bool m_frozen = false;
+
+    std::string m_name = "Timeline";
 
     std::mt19937 m_generator;
     std::uniform_real_distribution<float> m_distribution;

@@ -246,8 +246,46 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         push_job(std::make_shared<PatternJob>(App::get().Pattern.first, this, f));
     }
 
+    void Simulator::draw()
+    {
+        bool yes = true;
+        ImGui::SetNextWindowSize(ImVec2(1500, 400), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowPos(ImVec2(0, 600), ImGuiCond_FirstUseEver);
+
+
+        ImGui::Begin(m_name.c_str(), &yes, ImGuiWindowFlags_HorizontalScrollbar);
+
+        auto origin = ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+        ImU32 col = 0;
+
+        float windowMin = ImGui::GetScrollX();
+        float windowMax = windowMin + ImGui::GetWindowSize().x;
+        m_diplayed_timebox = 0;
+        for (const auto& t : get_timeboxes())
+        {
+            if (t.start_time <= windowMax && t.end_time >= windowMin)
+            {
+                DrawTimeBox(origin, t);
+                m_diplayed_timebox += 1;
+            }
+        }
+        if (App::get().DisplayOption.ShowCoreTime)
+        {
+            DrawCore(origin);
+        }
+
+        // Add an offset to scroll a bit more than the max of the timeline
+        auto cursor = get_max() + ImVec2(100.f, 0.f);
+        cursor.x *= App::get().DisplayOption.Scale;
+        ImGui::SetCursorPos(cursor);
+
+        ImGui::End();
+    }
+
     void Simulator::step()
     {
+        assert(!m_frozen);
+
         std::sort(m_cores.begin(), m_cores.end(), [](auto& a, auto& b) -> bool {
             return a.time < b.time || (a.time == b.time && a.index < b.index);
         });
@@ -359,61 +397,52 @@ void PopDisabled(bool disabled)
     }
 }
 
+static int g_FreezeCount = 0;
+
+void Simulator::freeze(const std::string& name)
+{
+    m_frozen = true;
+    std::stringstream s;
+    s << name << " " << g_FreezeCount;
+    g_FreezeCount += 1;
+    m_name = s.str();
+}
 
 void DrawVisualizer()
 {
-    static std::unique_ptr<Simulator> simulator;
-
     if (App::get().ControlOption.Restart)
     {
+        if (App::get().CurrentSimulation)
+        {
+            App::get().CurrentSimulation->freeze(App::get().Pattern.first->name);
+            App::get().FrozenSimulations.insert(App::get().CurrentSimulation);
+        }
+
         int seed = App::get().SimOption.Seed;
         if (App::get().SimOption.AutoSeed)
         {
             App::get().SimOption.Seed = (int) std::chrono::system_clock::now().time_since_epoch().count();
         }
-        simulator = std::make_unique<Simulator>(App::get().SimOption.CoreNum, App::get().SimOption.FramePoolSize, App::get().SimOption.Seed, App::get().SimOption.Random);
+        App::get().CurrentSimulation = std::make_shared<Simulator>(App::get().SimOption.CoreNum, App::get().SimOption.FramePoolSize, App::get().SimOption.Seed, App::get().SimOption.Random);
     }
     App::get().LastSimOption = App::get().SimOption;
 
-    if (App::get().ControlOption.Step || App::get().ControlOption.AutoStep)
+    if (App::get().CurrentSimulation && App::get().ControlOption.Step || App::get().ControlOption.AutoStep)
     {
-        simulator->step();
+        App::get().CurrentSimulation->step();
     }
 
-    bool yes = true;
+    App::get().CurrentSimulation->draw();
 
-    ImGui::SetNextWindowSize(ImVec2(1500, 400), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowPos(ImVec2(0, 600), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Timeline", &yes, ImGuiWindowFlags_HorizontalScrollbar);
-    auto origin = ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
-    ImU32 col = 0;
-
-    float windowMin = ImGui::GetScrollX();
-    float windowMax = windowMin + ImGui::GetWindowSize().x;
-    int count = 0;
-    for (const auto& t : simulator->get_timeboxes())
+    for (auto& s : App::get().FrozenSimulations)
     {
-        if (t.start_time <= windowMax && t.end_time >= windowMin)
-        {
-            DrawTimeBox(origin, t);
-            count += 1;
-        }
-    }
-    if (App::get().DisplayOption.ShowCoreTime)
-    {
-        simulator->DrawCore(origin);
+        s->draw();
     }
 
-    // Add an offset to scroll a bit more than the max of the timeline
-    auto cursor = simulator->get_max() + ImVec2(100.f, 0.f);
-    cursor.x *= App::get().DisplayOption.Scale;
-    ImGui::SetCursorPos(cursor);
-
-    ImGui::End();
 
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 600), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Options", &yes);
+    ImGui::Begin("Options");
 
     if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen))
     {
@@ -465,9 +494,9 @@ void DrawVisualizer()
     }
 
     ImGui::Separator();
-    ImGui::Text("Rendered Count %d", count);
+    ImGui::Text("Rendered Count %d", App::get().CurrentSimulation->visible_timebox_count());
     ImGui::Text("Job Queue:");
-    for (auto& j : simulator->get_queue())
+    for (auto& j : App::get().CurrentSimulation->get_queue())
     {
         ImGui::BulletText("Job: %d, %s (%f)", j->frame_index(), j->name(), j->duration());
     }
