@@ -104,11 +104,15 @@ struct TimeBox
 
     int core_index;
     std::string frame_index;
-    float start_time;
-    float end_time;
     std::string name;
     uint32_t color;
     TimeBoxType type;
+
+    float start() const;
+    float end() const;
+private:
+    float end_time;
+    float start_time;
 };
 
 class Simulator;

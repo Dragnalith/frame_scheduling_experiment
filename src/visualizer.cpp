@@ -122,11 +122,13 @@ constexpr size_t array_size(T(&)[N]) { return N; }
 
 ImVec2 TimeBoxP0(const TimeBox& timebox)
 {
-    return ImVec2(timebox.start_time, timebox.core_index * App::get().DisplayOption.Height);
+    auto val = ImVec2(timebox.start(), timebox.core_index * App::get().DisplayOption.Height);
+    return val;
 }
 ImVec2 TimeBoxP1(const TimeBox& timebox)
 {
-    return TimeBoxP0(timebox) + ImVec2(timebox.end_time - timebox.start_time, App::get().DisplayOption.Height);
+    auto val = TimeBoxP0(timebox) + ImVec2((timebox.end() - timebox.start()), App::get().DisplayOption.Height);
+    return val;
 }
 
 ImU32 ScaleColor(ImU32 color, float ratio)
@@ -182,8 +184,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
     auto p0 = (win + origin + TimeBoxP0(timebox));
     auto p1 = (win + origin + TimeBoxP1(timebox));
-    p0.x *= App::get().DisplayOption.Scale;
-    p1.x *= App::get().DisplayOption.Scale;
+
     if (is_frame_time)
     {
         p0.y += 20.f;
@@ -433,11 +434,11 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         }
 
         float windowMin = ImGui::GetScrollX();
-        float windowMax = windowMin + ImGui::GetWindowSize().x;
+        float windowMax = (windowMin + ImGui::GetWindowSize().x);
         m_diplayed_timebox = 0;
         for (const auto& t : get_timeboxes())
         {
-            if (t.start_time <= windowMax && t.end_time >= windowMin)
+            if (t.start() <= windowMax && t.end() >= windowMin)
             {
                 DrawTimeBox(timelineOrigin, t);
                 m_diplayed_timebox += 1;
@@ -462,7 +463,6 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
         // Add an offset to scroll a bit more than the max of the timeline
         auto cursor = get_max() + ImVec2(100.f, 0.f);
-        cursor.x *= App::get().DisplayOption.Scale;
         ImGui::SetCursorPos(cursor);
 
         ImGui::End();
@@ -793,8 +793,9 @@ void Simulator::DrawCore(ImVec2 origin)
 
     for (const auto& c : m_cores)
     {
-        auto p0 = win + origin + ImVec2(c.time, c.index * App::get().DisplayOption.Height);
-        p0.x *= App::get().DisplayOption.Scale;
+        auto pos = ImVec2(c.time, c.index * App::get().DisplayOption.Height);
+        pos.x *= App::get().DisplayOption.Scale;
+        auto p0 = win + origin + pos ;
         auto p1 = p0 + ImVec2(2.f, App::get().DisplayOption.Height);
 
         ImU32 color = c.current_job ? g_Red : g_White;
@@ -806,3 +807,7 @@ const Preset& get_default_preset()
 {
     return *g_Presets[0];
 }
+
+
+float TimeBox::start() const { return start_time * App::get().DisplayOption.Scale; }
+float TimeBox::end() const { return end_time * App::get().DisplayOption.Scale; }
