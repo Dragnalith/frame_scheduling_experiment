@@ -37,7 +37,7 @@ struct SimulationOption
 
 struct ControlOption
 {
-    bool AutoRestart = true;
+    bool Keep = true;
     bool Restart = true;
     bool AutoStep = false;
     bool Step;

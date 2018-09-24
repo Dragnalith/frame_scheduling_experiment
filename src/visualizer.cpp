@@ -364,7 +364,7 @@ void DrawVisualizer()
 {
     static std::unique_ptr<Simulator> simulator;
 
-    if (App::get().ControlOption.Restart || App::get().ControlOption.AutoRestart && (App::get().LastSimOption != App::get().SimOption))
+    if (App::get().ControlOption.Restart)
     {
         int seed = App::get().SimOption.Seed;
         if (App::get().SimOption.AutoSeed)
@@ -381,6 +381,9 @@ void DrawVisualizer()
     }
 
     bool yes = true;
+
+    ImGui::SetNextWindowSize(ImVec2(1500, 400), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(0, 600), ImGuiCond_FirstUseEver);
     ImGui::Begin("Timeline", &yes, ImGuiWindowFlags_HorizontalScrollbar);
     auto origin = ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
     ImU32 col = 0;
@@ -408,7 +411,8 @@ void DrawVisualizer()
 
     ImGui::End();
 
-
+    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(300, 600), ImGuiCond_FirstUseEver);
     ImGui::Begin("Options", &yes);
 
     if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen))
@@ -427,15 +431,18 @@ void DrawVisualizer()
     {
 
         App::get().ControlOption.Restart = false;
-        PushDisabled(App::get().ControlOption.AutoRestart);
         if (ImGui::Button("Restart"))
         {
             App::get().ControlOption.Restart = true;
+            App::get().ControlOption.Keep = false;
         }
-        PopDisabled(App::get().ControlOption.AutoRestart);
 
         ImGui::SameLine();
-        ImGui::Checkbox("Auto Restart", &App::get().ControlOption.AutoRestart);
+        if (ImGui::Button("Restart & Keep"))
+        {
+            App::get().ControlOption.Restart = true;
+            App::get().ControlOption.Keep = true;
+        }
 
         App::get().ControlOption.Step = false;
         PushDisabled(App::get().ControlOption.AutoStep);

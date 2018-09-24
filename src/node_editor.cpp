@@ -58,8 +58,9 @@ struct JobType;
 void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
 {
     auto g_Context = context;
-    ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiSetCond_FirstUseEver);
-    if (!ImGui::Begin("Example: Custom Node Graph", opened))
+    ImGui::SetNextWindowPos(ImVec2(300, 0), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(1200, 600), ImGuiSetCond_FirstUseEver);
+    if (!ImGui::Begin("Frame Pattern Editor", opened))
     {
         ImGui::End();
         return;
@@ -72,7 +73,8 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
     ImGui::Separator();
 
     ed::SetCurrentEditor(g_Context);
-    ed::Begin("My Editor", ImVec2(0.0, 0.0f));
+
+    ed::Begin("Frame Pattern Editor", ImVec2(0, 0));
     int uniqueId = 1;
     // Start drawing nodes.
 
