@@ -53,6 +53,7 @@ struct ControlOption
     bool Keep = true;
     bool Restart = true;
     bool AutoStep = true;
+    int MaxAutoStep = 300;
     bool Step;
 };
 
@@ -158,7 +159,7 @@ class Simulator
 public:
     Simulator(std::shared_ptr<FramePattern> pattern, const SimulationOption& option, float stddev);
 
-    void step();
+    void step(bool autostep);
     void draw();
 
     const std::vector<TimeBox>& get_timeboxes() const { return m_timeboxes; }
@@ -195,6 +196,7 @@ public:
     }
 
     int visible_timebox_count() const { return m_diplayed_timebox; }
+    int step_count() const { return m_step_count; }
 
     void freeze(const std::string&name);
 
@@ -222,6 +224,8 @@ private:
     std::deque<std::shared_ptr<Job>> m_job_queue;
     std::deque<std::shared_ptr<Frame>> m_frame_available;
     std::vector<TimeBox> m_timeboxes;
+
+    int m_step_count = 0;
 };
 
 struct JobType;

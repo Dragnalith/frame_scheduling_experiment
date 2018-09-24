@@ -615,9 +615,9 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         ImGui::End();
     }
 
-    void Simulator::step()
+    void Simulator::step(bool autostep)
     {
-        if (m_frame_count > 300 && App::get().ControlOption.AutoStep)
+        if (m_step_count >= App::get().ControlOption.MaxAutoStep && autostep)
         {
             return;
         }
@@ -625,6 +625,8 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         {
             return;
         }
+
+        m_step_count += 1;
 
         std::sort(m_cores.begin(), m_cores.end(), [](auto& a, auto& b) -> bool {
             return a.time < b.time || (a.time == b.time && a.index < b.index);
@@ -832,14 +834,14 @@ void DrawVisualizer()
     {
         if (app.ControlOption.AutoStep)
         {
-            for (int i = 0; i < 300; i++)
+            for (int i = 0; i <= App::get().ControlOption.MaxAutoStep; i++)
             {
-                app.CurrentSimulation->step();
+                app.CurrentSimulation->step(!App::get().ControlOption.Step);
             }
         }
         else
         {
-            App::get().CurrentSimulation->step();
+            App::get().CurrentSimulation->step(!App::get().ControlOption.Step);
         }
     }
 
@@ -914,6 +916,7 @@ void DrawVisualizer()
 
         ImGui::SameLine();
         ImGui::Checkbox("Auto Step", &App::get().ControlOption.AutoStep);
+        ImGui::InputInt("Max Auto Step", &App::get().ControlOption.MaxAutoStep);
     }
 
     if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen))
@@ -927,6 +930,7 @@ void DrawVisualizer()
     }
 
     ImGui::Separator();
+    ImGui::Text("Step #%d", App::get().CurrentSimulation->step_count());
     ImGui::Text("Rendered Count %d", App::get().CurrentSimulation->visible_timebox_count());
     ImGui::Text("Job Queue:");
     for (auto& j : App::get().CurrentSimulation->get_queue())
