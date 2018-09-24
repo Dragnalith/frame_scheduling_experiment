@@ -81,6 +81,7 @@ void DrawNodeEditor(bool* opened)
         ImGui::InputText("Name", j->name, 255);
         ImGui::DragFloat("Duration", &j->duration, 1.f, 10.f, 300.f);
         ImGui::Checkbox("Generate Next Frame", &j->generate_next);
+        ImGui::Checkbox("Generate Is Priority", &j->generation_priority);
         ImGui::Checkbox("Release Frame", &j->release_frame);
         ImGui::Checkbox("Wait Previous", &j->wait_previous);
         ImGui::DragInt("Subdive Count", &j->count, 1.f, 1, 100);

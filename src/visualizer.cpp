@@ -135,6 +135,82 @@ private:
     float m_kickTime;
     bool m_waitRender;
     bool m_waitKick;
+}; 
+
+class ParallelFrameCentricPreset : public Preset
+{
+public:
+    ParallelFrameCentricPreset(const char* name, float prepareTime, float simuTime, float renderTime, float kickTime, bool waitRender, bool waitKick, int simuDiv, int renderDiv)
+        : m_name(name)
+        , m_prepareTime(prepareTime)
+        , m_simuTime(simuTime)
+        , m_renderTime(renderTime)
+        , m_kickTime(kickTime)
+        , m_waitRender(waitRender)
+        , m_waitKick(waitKick)
+        , m_simuDiv(simuDiv)
+        , m_renderDiv(renderDiv)
+    {
+    }
+
+    virtual const char* name() const {
+        return m_name;
+    }
+
+    virtual std::shared_ptr<FramePattern> pattern() const {
+        auto& app = App::get();
+        auto pos = ImVec2(50.f, 50.f);
+        float offset = 300.f;
+        auto pattern = std::make_shared<FramePattern>();
+
+        auto prepare = create_job_type("Prepare", m_prepareTime, true, false, false);
+        pattern->add(prepare);
+        ed::SetNodePosition(prepare->nid, pos);
+        pos.x += offset;
+
+        auto simu = create_job_type("Simulation", m_simuTime, false, true, false);
+        simu->count = m_simuDiv;
+        simu->generation_priority = true;
+        pattern->add(simu);
+        ed::SetNodePosition(simu->nid, pos);
+        pos.x += offset;
+        prepare->next = simu;
+
+        auto render = create_job_type("Render", m_renderTime, false, false, false);
+        render->count = m_renderDiv;
+        render->wait_previous = m_waitRender;
+        pattern->add(render);
+        simu->next = render;
+
+        ed::SetNodePosition(render->nid, pos);
+        pos.x += offset;
+
+        auto kick = create_job_type("Kick", m_kickTime, false, false, true);
+        kick->wait_previous = m_waitKick;
+        pattern->add(kick);
+        render->next = kick;
+        ed::SetNodePosition(kick->nid, pos);
+        pos.x += offset;
+
+        pattern->first = prepare;
+
+        return pattern;
+    }
+
+    virtual SimulationOption option() const {
+        return SimulationOption();
+    };
+
+private:
+    const char* m_name;
+    float m_prepareTime;
+    float m_simuTime;
+    float m_renderTime;
+    float m_kickTime;
+    bool m_waitRender;
+    bool m_waitKick;
+    int m_simuDiv;
+    int m_renderDiv;
 };
 
 std::unique_ptr<Preset> g_Presets[] = {
@@ -146,6 +222,10 @@ std::unique_ptr<Preset> g_Presets[] = {
     std::make_unique<FrameCentricPreset>("Frame Centric (Simu bound)", 250.f, 100.f, 50.f, false, false),
     std::make_unique<FrameCentricPreset>("FC Simu bound (render sync)", 250.f, 100.f, 50.f, true, false),
     std::make_unique<FrameCentricPreset>("FC Render bound (render sync)", 150.f, 200.f, 50.f, true, false),
+    std::make_unique<ParallelFrameCentricPreset>("Parallel 4 (Simu bound)", 20.f, 200.f, 100.f, 50.f, false, false, 4, 4),
+    std::make_unique<ParallelFrameCentricPreset>("Parallel 4 (Render bound)", 20.f, 130.f, 200.f, 50.f, false, false, 4, 4),
+    std::make_unique<ParallelFrameCentricPreset>("Parallel 8 (Simu bound)", 20.f, 200.f, 100.f, 50.f, false, false, 8, 8),
+    std::make_unique<ParallelFrameCentricPreset>("Parallel 8 (Render bound)", 20.f, 130.f, 200.f, 50.f, false, false, 8, 8),
 };
 
 
@@ -349,6 +429,19 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
             }
             else
             {
+                auto gen_next = [&]() {
+                    if (m_type->generate_next)
+                    {
+                        auto f = m_simulator->start_frame(time);
+                        m_simulator->push_job(std::make_shared<PatternJob>(App::get().Pattern->first, m_simulator, f));
+                    }
+                };
+
+                if (m_type->generation_priority)
+                {
+                    gen_next();
+                }
+
                 if (m_type->next)
                 {
 
@@ -368,10 +461,9 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
                     }
                 }
 
-                if (m_type->generate_next)
+                if (!m_type->generation_priority)
                 {
-                    auto f = m_simulator->start_frame(time);
-                    m_simulator->push_job(std::make_shared<PatternJob>(App::get().Pattern->first, m_simulator, f));
+                    gen_next();
                 }
 
                 if (m_type->release_frame)
@@ -507,8 +599,9 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         }
 
         // Add an offset to scroll a bit more than the max of the timeline
-        auto cursor = get_max() + ImVec2(100.f, 0.f);
-        ImGui::SetCursorPos(cursor);
+        auto cursor = get_max();
+        cursor.x *= App::get().DisplayOption.Scale;
+        ImGui::SetCursorPos(cursor  + ImVec2(100.f, 0.f));
 
         ImGui::End();
     }
@@ -813,7 +906,7 @@ void DrawVisualizer()
         ImGui::Checkbox("Show Core Time", &App::get().DisplayOption.ShowCoreTime);
         ImGui::Checkbox("Show Frame Pool", &App::get().DisplayOption.ShowFramePool);
         ImGui::SliderFloat("Height", &App::get().DisplayOption.Height, 5.f, 40.f);
-        ImGui::SliderFloat("Scale", &App::get().DisplayOption.Scale, 1.f, 3.f);
+        ImGui::SliderFloat("Scale", &App::get().DisplayOption.Scale, 1.f, 10.f);
     }
 
     ImGui::Separator();

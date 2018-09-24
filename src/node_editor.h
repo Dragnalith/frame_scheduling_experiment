@@ -19,6 +19,7 @@ struct JobType
 
     bool is_first = false;
     bool generate_next = false;
+    bool generation_priority = false;
     bool wait_previous = false;
     bool release_frame = false;
     int  count = 1;
