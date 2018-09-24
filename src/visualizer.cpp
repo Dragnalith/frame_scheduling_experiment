@@ -25,10 +25,20 @@ ImU32 g_DarkGrey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.3f, 0.3f, 0.3f, 1.0f)
 ImU32 g_Black = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 
 
-class FullSyncPreset : public Preset
+class SynchronePreset : public Preset
 {
+public:
+    SynchronePreset(const char* name, float simuTime, float renderTime, bool earlyStart)
+        : m_name(name)
+        , m_simuTime(simuTime)
+        , m_renderTime(renderTime)
+        , m_earlyStart(earlyStart)
+    {
+
+    }
+
     virtual const char* name() const {
-        return "0/ Full Sync";
+        return m_name;
     }
 
     virtual std::shared_ptr<FramePattern> pattern() const {
@@ -37,15 +47,16 @@ class FullSyncPreset : public Preset
         float offset = 300.f;
         auto pattern = std::make_shared<FramePattern>();
 
-        auto prepare = create_job_type("Prepare", 150.f, true, false, false);
+        auto prepare = create_job_type("Simulation", m_simuTime, true, m_earlyStart, false);
         pattern->add(prepare);
+        prepare->wait_previous = true;
         ed::SetNodePosition(prepare->nid, pos);
         pos.x += offset;
 
-        auto render = create_job_type("Render", 250.f, false, true, true);
+        auto render = create_job_type("Render", m_renderTime, false, !m_earlyStart, true);
         pattern->add(render);
+        render->wait_previous = true;
         prepare->next = render;
-
         ed::SetNodePosition(render->nid, pos);
         pos.x += offset;
 
@@ -57,6 +68,12 @@ class FullSyncPreset : public Preset
     virtual SimulationOption option() const {
         return SimulationOption();
     };
+
+private:
+    const char* m_name;
+    float m_simuTime;
+    float m_renderTime;
+    bool m_earlyStart;
 };
 
 class RenderAsyncPreset : public Preset
@@ -100,7 +117,10 @@ class RenderAsyncPreset : public Preset
 };
 
 std::unique_ptr<Preset> g_Presets[] = {
-    std::make_unique<FullSyncPreset>(),
+    std::make_unique<SynchronePreset>("Sequencial", 200.f, 200.f, false),
+    std::make_unique<SynchronePreset>("Simple Parallel", 200.f, 200.f, true),
+    std::make_unique<SynchronePreset>("Simple Parallel (Simu bound)", 300.f, 100.f, true),
+    std::make_unique<SynchronePreset>("Simple Parallel (Render bound)", 150.f, 250.f, true),
     std::make_unique<RenderAsyncPreset>()
 };
 
@@ -358,12 +378,13 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
      }
 
 
-    Simulator::Simulator(std::shared_ptr<FramePattern> pattern, int core, int frame_pool, int seed, float stddev)
-        : m_core_count(core)
-        , m_frame_pool_size(frame_pool)
+    Simulator::Simulator(std::shared_ptr<FramePattern> pattern, const SimulationOption& option, float stddev)
+        : m_core_count(option.CoreNum)
+        , m_frame_pool_size(option.FramePoolSize)
         , m_frame_count(0)
-        , m_generator(seed)
+        , m_generator(option.Seed)
         , m_distribution((1.f - stddev), (1.f + stddev))
+        , m_option(option)
     {
         for (int i = 0; i < m_core_count; i++)
         {
@@ -649,7 +670,7 @@ void Simulator::freeze(const std::string& name)
 {
     m_frozen = true;
     std::stringstream s;
-    s << name << " " << g_FreezeCount << " (Core = " << m_core_count << ", Frame Pool = " << m_frame_pool_size << ")";
+    s << g_FreezeCount << ' ' << m_option.Name << " (Core = " << m_core_count << ", Frame Pool = " << m_frame_pool_size << ")";
     g_FreezeCount += 1;
     m_name = s.str();
 }
@@ -671,7 +692,7 @@ void DrawVisualizer()
         {
             App::get().SimOption.Seed = (int) std::chrono::system_clock::now().time_since_epoch().count();
         }
-        App::get().CurrentSimulation = std::make_shared<Simulator>(app.Pattern, App::get().SimOption.CoreNum, App::get().SimOption.FramePoolSize, App::get().SimOption.Seed, App::get().SimOption.Random);
+        App::get().CurrentSimulation = std::make_shared<Simulator>(app.Pattern, App::get().SimOption, App::get().SimOption.Random);
     }
 
     if (App::get().CurrentSimulation && App::get().ControlOption.Step || App::get().ControlOption.AutoStep)
@@ -709,23 +730,19 @@ void DrawVisualizer()
             if (ImGui::Selectable(g_Presets[n]->name(), is_selected))
             {
                 App::get().SelectedPreset = n;
-            }
-            if (is_selected)
-            {
+
                 ImGui::SetItemDefaultFocus();
+                App::set_preset(*g_Presets[App::get().SelectedPreset]);
             }
         }
         ImGui::EndCombo();
     }
-    if (ImGui::Button("Restore Preset"))
-    {
-        App::set_preset(*g_Presets[App::get().SelectedPreset]);
-    }
-    ImGui::SameLine();
+
     ImGui::Checkbox("Only Frame Pattern", &App::get().OnlyFramePattern);
 
     if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen))
     {
+        ImGui::Text(App::get().SimOption.Name);
         ImGui::SliderInt("Core Number", &App::get().SimOption.CoreNum, 1, 16);
         ImGui::SliderInt("FramePool Size", &App::get().SimOption.FramePoolSize, 1, 16);
         ImGui::SliderFloat("Random", &App::get().SimOption.Random, 0.0f, 0.9f);

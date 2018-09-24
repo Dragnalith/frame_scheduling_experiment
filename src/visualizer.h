@@ -16,8 +16,9 @@
 
 struct SimulationOption
 {
-    int CoreNum = 2;
-    int FramePoolSize = 2;
+    const char* Name = "Default Name";
+    int CoreNum = 4;
+    int FramePoolSize = 4;
     float Random = 0.f;
     int Seed = 0;
     bool AutoSeed = false;
@@ -154,7 +155,7 @@ struct FramePattern;
 class Simulator
 {
 public:
-    Simulator(std::shared_ptr<FramePattern> pattern, int core, int frame_pool, int seed, float stddev);
+    Simulator(std::shared_ptr<FramePattern> pattern, const SimulationOption& option, float stddev);
 
     void step();
     void draw();
@@ -209,6 +210,7 @@ private:
     int m_diplayed_timebox = 0;
     bool m_frozen = false;
 
+    SimulationOption m_option;
     std::string m_name = "Timeline";
 
     std::mt19937 m_generator;

@@ -49,6 +49,7 @@ void App::set_preset(const Preset& p)
     {
         s_App->SimOption = p.option();
     }
+    s_App->SimOption.Name = p.name();
 }
 
 App& App::get() {

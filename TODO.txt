@@ -1,16 +1,19 @@
-[ ] Create via combo box
-[ ] Synchronize with previous frame
-
 # Visualizer
 * Node have different color
 * Display the min frame time and max frame time
 * Node Editor use weight instead of duration so frame remain the same time
 
 # Simulation
-* A job can depends on several one
 * Generate in several ticks to keep the application interactive, i.e changing one parameter directly change the result
 
 # Scheduler
 * Force synchronization on external event (like input or vsync), and make sure you can dynamically resize
-* Timebox can depends on the same time of a preceding frame
 * Pre-designed simulation
+
+
+# Preset
+- Synchrone, 1 core
+- Synchrone, Simu/Render separeted but synchronize to the previous
+- Same But with longer Simu
+- Same But with longer Render
+- Simu, Animation, Render
