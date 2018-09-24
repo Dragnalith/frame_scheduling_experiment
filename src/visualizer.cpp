@@ -441,7 +441,14 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
     void Simulator::step()
     {
-        assert(!m_frozen);
+        if (m_frame_count > 300 && App::get().ControlOption.AutoStep)
+        {
+            return;
+        }
+        if (m_frozen)
+        {
+            return;
+        }
 
         std::sort(m_cores.begin(), m_cores.end(), [](auto& a, auto& b) -> bool {
             return a.time < b.time || (a.time == b.time && a.index < b.index);
@@ -640,7 +647,17 @@ void DrawVisualizer()
 
     if (App::get().CurrentSimulation && App::get().ControlOption.Step || App::get().ControlOption.AutoStep)
     {
-        App::get().CurrentSimulation->step();
+        if (app.ControlOption.AutoStep)
+        {
+            for (int i = 0; i < 300; i++)
+            {
+                app.CurrentSimulation->step();
+            }
+        }
+        else
+        {
+            App::get().CurrentSimulation->step();
+        }
     }
 
     App::get().CurrentSimulation->draw();

@@ -49,7 +49,7 @@ struct ControlOption
 {
     bool Keep = true;
     bool Restart = true;
-    bool AutoStep = false;
+    bool AutoStep = true;
     bool Step;
 };
 
