@@ -21,6 +21,7 @@ struct JobType
     bool generate_next = false;
     bool wait_previous = false;
     bool release_frame = false;
+    int  count = 1;
     char name[255];
     std::shared_ptr<JobType> next = nullptr;
     float duration = 100.f;

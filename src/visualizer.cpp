@@ -236,11 +236,17 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 }
 
 
-    PatternJob::PatternJob(std::shared_ptr<JobType> type, Simulator* sim, std::shared_ptr<Frame> f)
+    PatternJob::PatternJob(std::shared_ptr<JobType> type, Simulator* sim, std::shared_ptr<Frame> f, std::shared_ptr<int> counter)
         : Job(sim, f)
         , m_type(type)
+        , m_counter(counter)
     {
-        m_duration = m_type->duration * m_simulator->generate();
+        float div = 1.f;
+        if (counter)
+        {
+            div = (float)*counter;
+        }
+        m_duration = m_type->duration * m_simulator->generate() / div;
 
     }
 
@@ -291,24 +297,47 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         bool cond = can_generate_next;
         if (cond)
         {
-            if (m_type->next)
+            if (m_counter && *m_counter > 1)
             {
-                m_simulator->push_job(std::make_shared<PatternJob>(m_type->next, m_simulator, m_frame));
+                (*m_counter) -= 1;
+                assert(*m_counter >= 1);
+            }
+            else
+            {
+                if (m_type->next)
+                {
+
+                    int count = m_type->next->count;
+                    if (count > 1)
+                    {
+
+                        auto counter = std::make_shared<int>(count);
+                        for (int i = 0; i < count; i++)
+                        {
+                            m_simulator->push_job(std::make_shared<PatternJob>(m_type->next, m_simulator, m_frame, counter));
+                        }
+                    }
+                    else
+                    {
+                        m_simulator->push_job(std::make_shared<PatternJob>(m_type->next, m_simulator, m_frame));
+                    }
+                }
+
+                if (m_type->generate_next)
+                {
+                    auto f = m_simulator->start_frame(time);
+                    m_simulator->push_job(std::make_shared<PatternJob>(App::get().Pattern->first, m_simulator, f));
+                }
+
+                if (m_type->release_frame)
+                {
+                    m_frame->end_time = time;
+                    m_simulator->push_frame(m_frame);
+                }
+
+                m_frame->finished_node.insert(m_type->nid);
             }
 
-            if (m_type->generate_next)
-            {
-                auto f = m_simulator->start_frame(time);
-                m_simulator->push_job(std::make_shared<PatternJob>(App::get().Pattern->first, m_simulator, f));
-            }
-
-            if (m_type->release_frame)
-            {
-                m_frame->end_time = time;
-                m_simulator->push_frame(m_frame);
-            }
-
-            m_frame->finished_node.insert(m_type->nid);
             return true;
         }
         else

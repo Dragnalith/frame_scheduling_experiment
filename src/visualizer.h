@@ -7,6 +7,7 @@
 #include <deque>
 #include <vector>
 #include <memory>
+#include <atomic>
 #include <random>
 #include <unordered_set>
 
@@ -221,7 +222,7 @@ struct JobType;
 class PatternJob : public Job
 {
 public:
-    PatternJob(std::shared_ptr<JobType> type, Simulator* sim, std::shared_ptr<Frame> f);
+    PatternJob(std::shared_ptr<JobType> type, Simulator* sim, std::shared_ptr<Frame> f, std::shared_ptr<int> counter = nullptr);
 
     virtual float duration() const override;
     virtual const char* name() const override;
@@ -236,6 +237,8 @@ public:
 private:
     std::shared_ptr<JobType> m_type;
     float m_duration;
+
+    std::shared_ptr<int> m_counter;
 };
 
 

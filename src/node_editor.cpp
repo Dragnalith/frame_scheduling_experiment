@@ -83,6 +83,7 @@ void DrawNodeEditor(bool* opened)
         ImGui::Checkbox("Generate Next Frame", &j->generate_next);
         ImGui::Checkbox("Release Frame", &j->release_frame);
         ImGui::Checkbox("Wait Previous", &j->wait_previous);
+        ImGui::DragInt("Subdive Count", &j->count, 1.f, 1, 100);
         ImGui::Text("%u, %u, %u, %u", j->nid, j->lid, j->iid, j->oid);
         ImGui::PopID();
         ed::BeginPin(j->iid, ed::PinKind::Input);
