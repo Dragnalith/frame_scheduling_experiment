@@ -46,6 +46,7 @@ struct ControlOption
 struct DisplayOption
 {
     bool ShowFrameTime = true;
+    bool ShowFrameRate = true;
     bool ShowCoreTime = true;
     bool ShowFramePool = true;
     float Height = 20.f;
@@ -67,7 +68,9 @@ enum class TimeBoxType
 {
     Normal,
     In,
-    Out
+    Out,
+    FrameTime,
+    FrameRate,
 };
 
 struct TimeBox
@@ -145,7 +148,7 @@ public:
 
     float generate();
 
-    std::shared_ptr<Frame> start_frame();
+    std::shared_ptr<Frame> start_frame(float time);
 
     void push_job(std::shared_ptr<Job> j);
 
@@ -168,6 +171,7 @@ private:
 
     std::shared_ptr<FramePattern> m_pattern;
 
+    float m_last_push_time = -1.f;
     int m_diplayed_timebox = 0;
     bool m_frozen = false;
 

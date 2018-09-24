@@ -83,9 +83,14 @@ ImU32 GetConstrastColor(ImU32 color)
 
 void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 {
-    bool is_frame = timebox.frame_index.size() == 0;
+    bool is_frame_time = timebox.type == TimeBoxType::FrameTime;
+    bool is_frame_rate = timebox.type == TimeBoxType::FrameRate;
 
-    if (is_frame && !App::get().DisplayOption.ShowFrameTime)
+    if (is_frame_time && !App::get().DisplayOption.ShowFrameTime)
+    {
+        return;
+    }
+    if (is_frame_rate && !App::get().DisplayOption.ShowFrameRate)
     {
         return;
     }
@@ -97,13 +102,25 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
     auto p1 = (win + origin + TimeBoxP1(timebox));
     p0.x *= App::get().DisplayOption.Scale;
     p1.x *= App::get().DisplayOption.Scale;
-    if (is_frame)
+    if (is_frame_time)
     {
         p0.y += 20.f;
         p1.y += (20.f - App::get().DisplayOption.Height * 0.5f);
     }
+    if (is_frame_rate)
+    {
+        p0.y += 10.f;
+        p1.y += (20.f - App::get().DisplayOption.Height * 0.7f);
+    }
 
-    drawList->AddRectFilled(p0, p1, timebox.color, 3.5f, ImDrawCornerFlags_All);
+    if (is_frame_rate)
+    {
+        drawList->AddRect(p0, p1, 0xffffffff, 3.5f, ImDrawCornerFlags_All);
+    }
+    else
+    {
+        drawList->AddRectFilled(p0, p1, timebox.color, 3.5f, ImDrawCornerFlags_All);
+    }
     if (timebox.type == TimeBoxType::In)
     {
         auto p2 = p1;
@@ -170,7 +187,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         {
             if (m_type->is_first)
             {
-                m_frame->start_time = time - m_duration;
+                //m_frame->start_time = time - m_duration;
             }
             if (m_type->next)
             {
@@ -179,7 +196,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
             if (m_type->generate_next)
             {
-                auto f = m_simulator->start_frame();
+                auto f = m_simulator->start_frame(time);
                 m_simulator->push_job(std::make_shared<PatternJob>(App::get().Pattern->first, m_simulator, f));
             }
 
@@ -228,7 +245,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
             m_frame_pool.push_back(std::make_shared<Frame>());
         }
 
-        auto f = start_frame();
+        auto f = start_frame(0.f);
         push_job(std::make_shared<PatternJob>(pattern->first, this, f));
     }
 
@@ -385,13 +402,14 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         return m_distribution(m_generator);
     }
 
-    std::shared_ptr<Frame> Simulator::start_frame()
+    std::shared_ptr<Frame> Simulator::start_frame(float time)
     {
         assert(!m_frame_pool.empty());
         std::shared_ptr<Frame> f = m_frame_pool.back();
         m_frame_pool.pop_back();
 
         f->frame_index = m_frame_count;
+        f->start_time = time;
         m_frame_count += 1;
         return f;
     }
@@ -403,13 +421,22 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
     void Simulator::push_frame(std::shared_ptr<Frame> f)
     {
-        int index = m_core_count + f->frame_index % m_frame_pool_size;
+        int frame_time_core_index = m_core_count + 2 + f->frame_index % m_frame_pool_size;
+
+        if (m_last_push_time >= 0.f)
+        {
+            std::stringstream sss;
+            sss << f->end_time - m_last_push_time;
+            m_timeboxes.emplace_back(m_core_count + 1, -1, m_last_push_time, f->end_time, sss.str(), 0xff000000, TimeBoxType::FrameRate);
+        }
+
 
         std::stringstream s;
         s << f->end_time - f->start_time;
-        m_timeboxes.emplace_back(index, -1, f->start_time, f->end_time, s.str(), g_Colors[f->frame_index % array_size(g_Colors)], TimeBoxType::Normal);
+        m_timeboxes.emplace_back(frame_time_core_index, -1, f->start_time, f->end_time, s.str(), g_Colors[f->frame_index % array_size(g_Colors)], TimeBoxType::FrameTime);
 
         m_frame_pool.push_back(f);
+        m_last_push_time = f->end_time;
     }
 
     std::shared_ptr<Job> Simulator::pop_job()
@@ -444,7 +471,7 @@ void Simulator::freeze(const std::string& name)
 {
     m_frozen = true;
     std::stringstream s;
-    s << name << " " << g_FreezeCount;
+    s << name << " " << g_FreezeCount << " (Core = " << m_core_count << ", Frame Pool = " << m_frame_pool_size << ")";
     g_FreezeCount += 1;
     m_name = s.str();
 }
@@ -530,7 +557,8 @@ void DrawVisualizer()
 
     if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::Checkbox("Show FrameTime", &App::get().DisplayOption.ShowFrameTime);
+        ImGui::Checkbox("Show Frame Rate", &App::get().DisplayOption.ShowFrameRate);
+        ImGui::Checkbox("Show Frame Time", &App::get().DisplayOption.ShowFrameTime);
         ImGui::Checkbox("Show Core Time", &App::get().DisplayOption.ShowCoreTime);
         ImGui::Checkbox("Show Frame Pool", &App::get().DisplayOption.ShowFramePool);
         ImGui::SliderFloat("Height", &App::get().DisplayOption.Height, 5.f, 40.f);
