@@ -21,18 +21,18 @@ ImU32 g_Yellow = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
 ImU32 g_Cyan = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 1.0f, 1.0f, 1.0f));
 ImU32 g_Magenta = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 0.0f, 1.0f, 1.0f));
 ImU32 g_Grey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-ImU32 g_LightGrey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+ImU32 g_DarkGrey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
 ImU32 g_Black = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 
 ImU32 g_Colors[] = {
-    g_White,
+    g_Grey,
     g_Green,
     g_Red,
     g_Blue,
+    g_DarkGrey,
     g_Yellow,
     g_Cyan,
-    g_Magenta,
-    g_Grey
+    g_Magenta
 };
 
 template<class T, size_t N>
@@ -47,6 +47,24 @@ ImVec2 TimeBoxP1(const TimeBox& timebox)
     return TimeBoxP0(timebox) + ImVec2(timebox.end_time - timebox.start_time, App::get().DisplayOption.Height);
 }
 
+ImU32 ScaleColor(ImU32 color, float ratio)
+{
+    auto c = ImColor(color);
+    if (ratio > 0)
+    {
+        c.Value.x += (1.f - c.Value.x) * ratio;
+        c.Value.y += (1.f - c.Value.y) * ratio;
+        c.Value.z += (1.f - c.Value.z) * ratio;
+    }
+    else
+    {
+        c.Value.x += c.Value.x * ratio;
+        c.Value.y += c.Value.y * ratio;
+        c.Value.z += c.Value.z * ratio;
+    }
+
+    return ImU32(c);
+}
 ImU32 GetConstrastColor(ImU32 color)
 {
     int a0 = (color & 0x000000ff) >= 128 ? 1 : 0;
@@ -84,7 +102,22 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         p0.y += 20.f;
         p1.y += (20.f - App::get().DisplayOption.Height * 0.5f);
     }
+
     drawList->AddRectFilled(p0, p1, timebox.color, 3.5f, ImDrawCornerFlags_All);
+    if (timebox.type == TimeBoxType::In)
+    {
+        auto p2 = p1;
+        p2.x -= (p1.x - p0.x) * 0.3f;
+        auto newCol = GetConstrastColor(GetConstrastColor(timebox.color));
+        drawList->AddRectFilledMultiColor(p0, p2, newCol, timebox.color, timebox.color, newCol);
+    }
+    else if (timebox.type == TimeBoxType::Out)
+    {
+        auto p2 = p0;
+        p2.x += (p1.x - p0.x) * 0.3f;
+        auto newCol = GetConstrastColor(GetConstrastColor(timebox.color));
+        drawList->AddRectFilledMultiColor(p2, p1, timebox.color, newCol, newCol, timebox.color);
+    }
 
     ImVec2 size = p1 - p0;
     ImU32 c = GetConstrastColor(~timebox.color);
@@ -104,37 +137,6 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 }
 
 
-    PrepareJob::PrepareJob(Simulator* sim, std::shared_ptr<Frame> f)
-        : Job(sim, f)
-    {
-        m_duration = 100.f * m_simulator->generate();
-    }
-
-    float PrepareJob::duration() const
-    {
-        return m_duration;
-    }
-    const char* PrepareJob::name() const
-    {
-        return "Prepare";
-    }
-
-    bool PrepareJob::try_exec(float time)
-    {
-        if (!m_simulator->frame_pool_empty())
-        {
-            m_frame->start_time = time - m_duration;
-            m_simulator->push_job(std::make_shared<RenderJob>(m_simulator, m_frame));
-            auto f = m_simulator->start_frame();
-            m_simulator->push_job(std::make_shared<PrepareJob>(m_simulator, f));
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
     PatternJob::PatternJob(std::shared_ptr<JobType> type, Simulator* sim, std::shared_ptr<Frame> f)
         : Job(sim, f)
         , m_type(type)
@@ -150,6 +152,14 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
     const char* PatternJob::name() const
     {
         return m_type->name;
+    }
+    bool PatternJob::is_first() const
+    {
+        return m_type->is_first;
+    }
+    bool PatternJob::is_release() const
+    {
+        return m_type->release_frame;
     }
 
     bool PatternJob::try_exec(float time)
@@ -185,30 +195,6 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
             return false;
         }
     }
-
-    RenderJob::RenderJob(Simulator* sim, std::shared_ptr<Frame> f)
-        : Job(sim, f)
-    {
-        m_duration = 100.f * m_simulator->generate();
-    }
-
-      float RenderJob::duration() const 
-     {
-         return m_duration;
-     }
-
-      const char* RenderJob::name() const 
-     {
-         return "Render";
-     }
-
-     bool RenderJob::try_exec(float time) 
-     {
-         m_frame->end_time = time;
-         m_simulator->push_frame(m_frame);
-         return true;
-     }
-
      bool Core::try_exec()
      {
          if (current_job && current_job->try_exec(time))
@@ -243,7 +229,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         }
 
         auto f = start_frame();
-        push_job(std::make_shared<PatternJob>(App::get().Pattern->first, this, f));
+        push_job(std::make_shared<PatternJob>(pattern->first, this, f));
     }
 
     void Simulator::draw()
@@ -331,8 +317,18 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
             assert(latest_available_core != nullptr);
 
             std::shared_ptr<Job> j = pop_job();
-
-            m_timeboxes.emplace_back(latest_available_core->index, j->frame_index(), latest_available_core->time, latest_available_core->time + j->duration(), j->name(), g_Colors[j->frame_index() % array_size(g_Colors)]);
+            
+            auto timebox_color = g_Colors[j->frame_index() % array_size(g_Colors)];
+            auto type = TimeBoxType::Normal;
+            if (j->is_first())
+            {
+                type = TimeBoxType::In;
+            }
+            if (j->is_release())
+            {
+                type = TimeBoxType::Out;
+            }
+            m_timeboxes.emplace_back(latest_available_core->index, j->frame_index(), latest_available_core->time, latest_available_core->time + j->duration(), j->name(), timebox_color, type);
             m_max = ImMax(m_max, TimeBoxP1(m_timeboxes.back()));
             latest_available_core->time += j->duration();
             latest_available_core->current_job = j;
@@ -366,7 +362,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
         std::stringstream s;
         s << f->end_time - f->start_time;
-        m_timeboxes.emplace_back(index, -1, f->start_time, f->end_time, s.str(), g_Colors[f->frame_index % array_size(g_Colors)]);
+        m_timeboxes.emplace_back(index, -1, f->start_time, f->end_time, s.str(), g_Colors[f->frame_index % array_size(g_Colors)], TimeBoxType::Normal);
 
         m_frame_pool.push_back(f);
     }

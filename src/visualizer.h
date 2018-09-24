@@ -62,14 +62,22 @@ struct Core
     bool try_exec();
 };
 
+enum class TimeBoxType
+{
+    Normal,
+    In,
+    Out
+};
+
 struct TimeBox
 {
-    TimeBox(int index, int frame, float start, float end, const std::string& n, uint32_t c = 0xffffffff)
+    TimeBox(int index, int frame, float start, float end, const std::string& n, uint32_t c, TimeBoxType t)
         : core_index(index)
         , start_time(start)
         , end_time(end)
         , name(n)
         , color(c)
+        , type(t)
     {
         if (frame >= 0)
         {
@@ -85,6 +93,7 @@ struct TimeBox
     float end_time;
     std::string name;
     uint32_t color;
+    TimeBoxType type;
 };
 
 class Simulator;
@@ -110,6 +119,8 @@ public:
     virtual float duration() const = 0;
     virtual bool try_exec(float time) = 0;
     virtual const char* name() const = 0;
+    virtual bool is_first() const = 0;
+    virtual bool is_release() const = 0;
 protected:
     Simulator* m_simulator;
     std::shared_ptr<Frame> m_frame;
@@ -170,20 +181,6 @@ private:
     std::vector<TimeBox> m_timeboxes;
 };
 
-class PrepareJob : public Job
-{
-public:
-    PrepareJob(Simulator* sim, std::shared_ptr<Frame> f);
-
-    virtual float duration() const override;
-    virtual const char* name() const override;
-
-    virtual bool try_exec(float time) override;
-
-private:
-    float m_duration;
-};
-
 struct JobType;
 
 class PatternJob : public Job
@@ -193,26 +190,14 @@ public:
 
     virtual float duration() const override;
     virtual const char* name() const override;
+    virtual bool is_first() const override;
+    virtual bool is_release() const override;
 
     virtual bool try_exec(float time) override;
+
 
 private:
     std::shared_ptr<JobType> m_type;
-    float m_duration;
-};
-
-class RenderJob : public Job
-{
-public:
-    RenderJob(Simulator* sim, std::shared_ptr<Frame> f);
-
-    virtual float duration() const override;
-
-    virtual const char* name() const override;
-
-    virtual bool try_exec(float time) override;
-
-private:
     float m_duration;
 };
 

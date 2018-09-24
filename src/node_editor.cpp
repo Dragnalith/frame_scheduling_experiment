@@ -191,7 +191,7 @@ void DrawNodeEditor(bool* opened)
         {
             auto j = std::make_shared<JobType>();
             ed::SetNodePosition(j->nid, mousePos);
-            App::get().Pattern->Types.emplace(j->nid, j);
+            App::get().Pattern->add(j);
         }
 
         ImGui::EndPopup();
