@@ -140,12 +140,13 @@ private:
 class ParallelFrameCentricPreset : public Preset
 {
 public:
-    ParallelFrameCentricPreset(const char* name, float prepareTime, float simuTime, float renderTime, float kickTime, bool waitRender, bool waitKick, int simuDiv, int renderDiv)
+    ParallelFrameCentricPreset(const char* name, float prepareTime, float simuTime, float renderTime, float kickTime, int renderStage, bool waitRender, bool waitKick, int simuDiv, int renderDiv)
         : m_name(name)
         , m_prepareTime(prepareTime)
         , m_simuTime(simuTime)
         , m_renderTime(renderTime)
         , m_kickTime(kickTime)
+        , m_renderStage(renderStage)
         , m_waitRender(waitRender)
         , m_waitKick(waitKick)
         , m_simuDiv(simuDiv)
@@ -176,19 +177,26 @@ public:
         pos.x += offset;
         prepare->next = simu;
 
-        auto render = create_job_type("Render", m_renderTime, false, false, false);
-        render->count = m_renderDiv;
-        render->wait_previous = m_waitRender;
-        pattern->add(render);
-        simu->next = render;
+        auto prev = simu;
+        for (int i = 0; i < m_renderStage; i++)
+        {
+            std::stringstream s;
+            s << "Render " << i;
+            auto render = create_job_type(s.str().c_str(), m_renderTime / float(3), false, false, false);
+            render->count = m_renderDiv;
+            render->wait_previous = m_waitRender;
+            pattern->add(render);
+            prev->next = render;
+            prev = render;
+            ed::SetNodePosition(render->nid, pos);
+            pos.x += offset;
 
-        ed::SetNodePosition(render->nid, pos);
-        pos.x += offset;
+        }
 
         auto kick = create_job_type("Kick", m_kickTime, false, false, true);
         kick->wait_previous = m_waitKick;
         pattern->add(kick);
-        render->next = kick;
+        prev->next = kick;
         ed::SetNodePosition(kick->nid, pos);
         pos.x += offset;
 
@@ -207,6 +215,7 @@ private:
     float m_simuTime;
     float m_renderTime;
     float m_kickTime;
+    int m_renderStage;
     bool m_waitRender;
     bool m_waitKick;
     int m_simuDiv;
@@ -222,10 +231,10 @@ std::unique_ptr<Preset> g_Presets[] = {
     std::make_unique<FrameCentricPreset>("Frame Centric (Simu bound)", 250.f, 100.f, 50.f, false, false),
     std::make_unique<FrameCentricPreset>("FC Simu bound (render sync)", 250.f, 100.f, 50.f, true, false),
     std::make_unique<FrameCentricPreset>("FC Render bound (render sync)", 150.f, 200.f, 50.f, true, false),
-    std::make_unique<ParallelFrameCentricPreset>("Parallel 4 (Simu bound)", 20.f, 200.f, 100.f, 50.f, false, false, 4, 4),
-    std::make_unique<ParallelFrameCentricPreset>("Parallel 4 (Render bound)", 20.f, 130.f, 200.f, 50.f, false, false, 4, 4),
-    std::make_unique<ParallelFrameCentricPreset>("Parallel 8 (Simu bound)", 20.f, 200.f, 100.f, 50.f, false, false, 8, 8),
-    std::make_unique<ParallelFrameCentricPreset>("Parallel 8 (Render bound)", 20.f, 130.f, 200.f, 50.f, false, false, 8, 8),
+    std::make_unique<ParallelFrameCentricPreset>("Parallel 1 stages (Simu bound)", 20.f, 200.f, 100.f, 50.f, 1, false, false, 8, 8),
+    std::make_unique<ParallelFrameCentricPreset>("Parallel 1 stages (Render bound)", 20.f, 130.f, 200.f, 50.f, 1, false, false, 8, 8),
+    std::make_unique<ParallelFrameCentricPreset>("Parallel 3 stages (Simu bound)", 20.f, 200.f, 100.f, 50.f, 3,false, false, 8, 8),
+    std::make_unique<ParallelFrameCentricPreset>("Parallel 3 stages (Render bound)", 20.f, 130.f, 200.f, 50.f, 3, false, false, 8, 8),
 };
 
 
