@@ -76,10 +76,21 @@ private:
     bool m_earlyStart;
 };
 
-class RenderAsyncPreset : public Preset
+class FrameCentricPreset : public Preset
 {
+public:
+    FrameCentricPreset(const char* name, float simuTime, float renderTime, float kickTime, bool waitRender, bool waitKick)
+        : m_name(name)
+        , m_simuTime(simuTime)
+        , m_renderTime(renderTime)
+        , m_kickTime(kickTime)
+        , m_waitRender(waitRender)
+        , m_waitKick(waitKick)
+    {
+    }
+
     virtual const char* name() const {
-        return "1/ Render Async";
+        return m_name;
     }
 
     virtual std::shared_ptr<FramePattern> pattern() const {
@@ -88,19 +99,21 @@ class RenderAsyncPreset : public Preset
         float offset = 300.f;
         auto pattern = std::make_shared<FramePattern>();
 
-        auto prepare = create_job_type("Prepare", 150.f, true, true, false);
+        auto prepare = create_job_type("Simulation", m_simuTime, true, true, false);
         pattern->add(prepare);
         ed::SetNodePosition(prepare->nid, pos);
         pos.x += offset;
 
-        auto render = create_job_type("Render", 200.f, false, false, false);
+        auto render = create_job_type("Render", m_renderTime, false, false, false);
+        render->wait_previous = m_waitRender;
         pattern->add(render);
         prepare->next = render;
 
         ed::SetNodePosition(render->nid, pos);
         pos.x += offset;
 
-        auto kick = create_job_type("Kick", 50.f, false, false, true);
+        auto kick = create_job_type("Kick", m_kickTime, false, false, true);
+        kick->wait_previous = m_waitKick;
         pattern->add(kick);
         render->next = kick;
         ed::SetNodePosition(kick->nid, pos);
@@ -114,6 +127,14 @@ class RenderAsyncPreset : public Preset
     virtual SimulationOption option() const {
         return SimulationOption();
     };
+
+private:
+    const char* m_name;
+    float m_simuTime;
+    float m_renderTime;
+    float m_kickTime;
+    bool m_waitRender;
+    bool m_waitKick;
 };
 
 std::unique_ptr<Preset> g_Presets[] = {
@@ -121,7 +142,10 @@ std::unique_ptr<Preset> g_Presets[] = {
     std::make_unique<SynchronePreset>("Simple Parallel", 200.f, 200.f, true),
     std::make_unique<SynchronePreset>("Simple Parallel (Simu bound)", 300.f, 100.f, true),
     std::make_unique<SynchronePreset>("Simple Parallel (Render bound)", 150.f, 250.f, true),
-    std::make_unique<RenderAsyncPreset>()
+    std::make_unique<FrameCentricPreset>("Frame Centric (Render bound)", 150.f, 200.f, 50.f, false, false),
+    std::make_unique<FrameCentricPreset>("Frame Centric (Simu bound)", 250.f, 100.f, 50.f, false, false),
+    std::make_unique<FrameCentricPreset>("FC Simu bound (render sync)", 250.f, 100.f, 50.f, true, false),
+    std::make_unique<FrameCentricPreset>("FC Render bound (render sync)", 150.f, 200.f, 50.f, true, false),
 };
 
 

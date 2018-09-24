@@ -12,8 +12,4 @@
 
 
 # Preset
-- Synchrone, 1 core
-- Synchrone, Simu/Render separeted but synchronize to the previous
-- Same But with longer Simu
-- Same But with longer Render
 - Simu, Animation, Render
