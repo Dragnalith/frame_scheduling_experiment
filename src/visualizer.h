@@ -35,6 +35,15 @@ struct SimulationOption
     }
 };
 
+struct FramePattern;
+
+struct Preset
+{
+    virtual const char* name() const = 0;
+    virtual std::shared_ptr<FramePattern> pattern() const = 0;
+    virtual SimulationOption option() const = 0;
+};
+
 struct ControlOption
 {
     bool Keep = true;
@@ -208,3 +217,5 @@ private:
 
 
 void DrawVisualizer();
+
+const Preset& get_default_preset();

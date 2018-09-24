@@ -21,7 +21,7 @@
 App* App::s_App;
 
 std::shared_ptr<JobType> create_job_type(const char* name, float duration,
-    bool is_first = false, bool generate_next = false, bool release_frame = false)
+    bool is_first, bool generate_next, bool release_frame)
 {
     auto j = std::make_shared<JobType>();
     j->duration = duration;
@@ -33,44 +33,22 @@ std::shared_ptr<JobType> create_job_type(const char* name, float duration,
     return j;
 }
 
-std::shared_ptr<FramePattern> create_default_pattern()
-{
-    auto& app = App::get();
-    auto pos = ImVec2(50.f, 50.f);
-    float offset = 300.f;
-    auto pattern = std::make_shared<FramePattern>();
-
-    auto prepare = create_job_type("Prepare", 100.f, true, true, false);
-    pattern->add(prepare);
-    ed::SetNodePosition(prepare->nid, pos);
-    pos.x += offset;
-
-    auto render = create_job_type("Render", 200.f, false, false, false);
-    pattern->add(render);
-    prepare->next = render;
-
-    ed::SetNodePosition(render->nid, pos);
-    pos.x += offset;
-
-    auto kick = create_job_type("Kick", 60.f, false, false, true);
-    pattern->add(kick);
-    render->next = kick;
-    ed::SetNodePosition(kick->nid, pos);
-    pos.x += offset;
-
-    pattern->first = prepare;
-
-    return pattern;
-}
-
 void App::init()
 {
     s_App = new App();
     s_App->NodeEditorContext = ax::NodeEditor::CreateEditor();
     ed::SetCurrentEditor(s_App->NodeEditorContext);
 
+    App::set_preset(get_default_preset());
+}
 
-    s_App->Pattern = create_default_pattern();
+void App::set_preset(const Preset& p)
+{
+    s_App->Pattern = p.pattern();
+    if (!s_App->OnlyFramePattern)
+    {
+        s_App->SimOption = p.option();
+    }
 }
 
 App& App::get() {

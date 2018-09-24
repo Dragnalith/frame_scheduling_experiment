@@ -1,6 +1,10 @@
+[ ] Create via combo box
+[ ] Synchronize with previous frame
+
 # Visualizer
 * Node have different color
 * Display the min frame time and max frame time
+* Node Editor use weight instead of duration so frame remain the same time
 
 # Simulation
 * A job can depends on several one

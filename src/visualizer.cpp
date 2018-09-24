@@ -24,6 +24,88 @@ ImU32 g_Grey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
 ImU32 g_DarkGrey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
 ImU32 g_Black = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 
+
+class FullSyncPreset : public Preset
+{
+    virtual const char* name() const {
+        return "0/ Full Sync";
+    }
+
+    virtual std::shared_ptr<FramePattern> pattern() const {
+        auto& app = App::get();
+        auto pos = ImVec2(50.f, 50.f);
+        float offset = 300.f;
+        auto pattern = std::make_shared<FramePattern>();
+
+        auto prepare = create_job_type("Prepare", 150.f, true, false, false);
+        pattern->add(prepare);
+        ed::SetNodePosition(prepare->nid, pos);
+        pos.x += offset;
+
+        auto render = create_job_type("Render", 250.f, false, true, true);
+        pattern->add(render);
+        prepare->next = render;
+
+        ed::SetNodePosition(render->nid, pos);
+        pos.x += offset;
+
+        pattern->first = prepare;
+
+        return pattern;
+    }
+
+    virtual SimulationOption option() const {
+        return SimulationOption();
+    };
+};
+
+class RenderAsyncPreset : public Preset
+{
+    virtual const char* name() const {
+        return "1/ Render Async";
+    }
+
+    virtual std::shared_ptr<FramePattern> pattern() const {
+        auto& app = App::get();
+        auto pos = ImVec2(50.f, 50.f);
+        float offset = 300.f;
+        auto pattern = std::make_shared<FramePattern>();
+
+        auto prepare = create_job_type("Prepare", 150.f, true, true, false);
+        pattern->add(prepare);
+        ed::SetNodePosition(prepare->nid, pos);
+        pos.x += offset;
+
+        auto render = create_job_type("Render", 200.f, false, false, false);
+        pattern->add(render);
+        prepare->next = render;
+
+        ed::SetNodePosition(render->nid, pos);
+        pos.x += offset;
+
+        auto kick = create_job_type("Kick", 50.f, false, false, true);
+        pattern->add(kick);
+        render->next = kick;
+        ed::SetNodePosition(kick->nid, pos);
+        pos.x += offset;
+
+        pattern->first = prepare;
+
+        return pattern;
+    }
+
+    virtual SimulationOption option() const {
+        return SimulationOption();
+    };
+};
+
+std::unique_ptr<Preset> g_Presets[] = {
+    std::make_unique<FullSyncPreset>(),
+    std::make_unique<RenderAsyncPreset>()
+};
+
+
+
 ImU32 g_Colors[] = {
     g_Grey,
     g_Green,
@@ -495,7 +577,6 @@ void DrawVisualizer()
         }
         App::get().CurrentSimulation = std::make_shared<Simulator>(app.Pattern, App::get().SimOption.CoreNum, App::get().SimOption.FramePoolSize, App::get().SimOption.Seed, App::get().SimOption.Random);
     }
-    App::get().LastSimOption = App::get().SimOption;
 
     if (App::get().CurrentSimulation && App::get().ControlOption.Step || App::get().ControlOption.AutoStep)
     {
@@ -513,6 +594,29 @@ void DrawVisualizer()
     ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(300, 600), ImGuiCond_FirstUseEver);
     ImGui::Begin("Options");
+
+    if (ImGui::BeginCombo("Preset", g_Presets[App::get().SelectedPreset]->name())) // The second parameter is the label previewed before opening the combo.
+    {
+        for (int n = 0; n < array_size(g_Presets); n++)
+        {
+            bool is_selected = (App::get().SelectedPreset == n);
+            if (ImGui::Selectable(g_Presets[n]->name(), is_selected))
+            {
+                App::get().SelectedPreset = n;
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (ImGui::Button("Restore Preset"))
+    {
+        App::set_preset(*g_Presets[App::get().SelectedPreset]);
+    }
+    ImGui::SameLine();
+    ImGui::Checkbox("Only Frame Pattern", &App::get().OnlyFramePattern);
 
     if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen))
     {
@@ -590,4 +694,9 @@ void Simulator::DrawCore(ImVec2 origin)
         ImU32 color = c.current_job ? g_Red : g_White;
         drawList->AddRectFilled(p0, p1, color);
     }
+}
+
+const Preset& get_default_preset()
+{
+    return *g_Presets[0];
 }
