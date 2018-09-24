@@ -131,6 +131,7 @@ public:
 
     virtual float duration() const = 0;
     virtual bool try_exec(float time) = 0;
+    virtual void before_schedule(float time) = 0;
     virtual const char* name() const = 0;
     virtual bool is_first() const = 0;
     virtual bool is_release() const = 0;
@@ -207,6 +208,7 @@ public:
     virtual bool is_first() const override;
     virtual bool is_release() const override;
 
+    virtual void before_schedule(float time) override;
     virtual bool try_exec(float time) override;
 
 

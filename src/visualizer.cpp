@@ -261,16 +261,20 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         return m_type->release_frame;
     }
 
+    void PatternJob::before_schedule(float time)
+    {
+        if (m_type->is_first)
+        {
+            m_frame->start_time = time;
+        }
+    }
+
     bool PatternJob::try_exec(float time)
     {
         bool cond = !m_type->generate_next || m_type->generate_next && !m_simulator->frame_pool_empty();
 
         if (cond)
         {
-            if (m_type->is_first)
-            {
-                //m_frame->start_time = time - m_duration;
-            }
             if (m_type->next)
             {
                 m_simulator->push_job(std::make_shared<PatternJob>(m_type->next, m_simulator, m_frame));
@@ -461,6 +465,8 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
             assert(latest_available_core != nullptr);
 
             std::shared_ptr<Job> j = pop_job();
+
+            j->before_schedule(latest_available_core->time);
             
             auto timebox_color = g_Colors[j->frame_index() % array_size(g_Colors)];
             auto type = TimeBoxType::Normal;
@@ -491,7 +497,6 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         m_frame_pool.pop_back();
 
         f->frame_index = m_frame_count;
-        f->start_time = time;
         m_frame_count += 1;
         return f;
     }
