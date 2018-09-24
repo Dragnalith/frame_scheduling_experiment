@@ -43,11 +43,7 @@ JobType::JobType()
     iid = allocated_id();
     oid = allocated_id();
     lid = allocated_id();
-    strcpy(name,"No Name");
-
-    App::get().Id2Node.emplace(iid, nid);
-    App::get().Id2Node.emplace(oid, nid);
-    App::get().Id2Node.emplace(lid, nid);
+    strncpy(name,"No Name", 250);
 }
 
 
@@ -55,9 +51,8 @@ struct JobType;
 
 
 
-void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
+void DrawNodeEditor(bool* opened)
 {
-    auto g_Context = context;
     ImGui::SetNextWindowPos(ImVec2(300, 0), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(1200, 600), ImGuiSetCond_FirstUseEver);
     if (!ImGui::Begin("Frame Pattern Editor", opened))
@@ -72,13 +67,11 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
 
     ImGui::Separator();
 
-    ed::SetCurrentEditor(g_Context);
-
     ed::Begin("Frame Pattern Editor", ImVec2(0, 0));
     int uniqueId = 1;
     // Start drawing nodes.
 
-    for(auto& pair : App::get().Types)
+    for(auto& pair : App::get().Pattern->Types)
     {
         auto& j = pair.second;
         ed::BeginNode(j->nid);
@@ -87,8 +80,8 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
         ImGui::PushItemWidth(100.f);
         ImGui::InputText("Name", j->name, 255);
         ImGui::DragFloat("Duration", &j->duration, 1.f, 10.f, 300.f);
-        ImGui::Checkbox("Generate Next Frame", &j->generateNextFrame);
-        ImGui::Checkbox("Release Frame", &j->releaseFrame);
+        ImGui::Checkbox("Generate Next Frame", &j->generate_next);
+        ImGui::Checkbox("Release Frame", &j->release_frame);
         ImGui::Text("%u, %u, %u, %u", j->nid, j->lid, j->iid, j->oid);
         ImGui::PopID();
         ed::BeginPin(j->iid, ed::PinKind::Input);
@@ -111,7 +104,7 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
         ed::EndNode();
 
     }
-    for (auto& pair : App::get().Types)
+    for (auto& pair : App::get().Pattern->Types)
     {
         auto& j = pair.second;
         if (j->next)
@@ -125,8 +118,8 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
         ed::PinId startPinId = 0, endPinId = 0;
         if (ed::QueryNewLink(&startPinId, &endPinId))
         {
-            auto in = App::get().Types[App::get().Id2Node[(uint32_t) startPinId]];
-            auto out = App::get().Types[App::get().Id2Node[(uint32_t) endPinId]];
+            auto in = App::get().Pattern->Types[App::get().Pattern->Id2Node[(uint32_t) startPinId]];
+            auto out = App::get().Pattern->Types[App::get().Pattern->Id2Node[(uint32_t) endPinId]];
 
 
             if (in->iid == (uint32_t) startPinId)
@@ -198,7 +191,7 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
         {
             auto j = std::make_shared<JobType>();
             ed::SetNodePosition(j->nid, mousePos);
-            App::get().Types.emplace(j->nid, j);
+            App::get().Pattern->Types.emplace(j->nid, j);
         }
 
         ImGui::EndPopup();
@@ -209,7 +202,6 @@ void ShowExampleAppCustomNodeGraph(bool* opened, ed::EditorContext* context)
 
 
     ed::End();
-    ed::SetCurrentEditor(nullptr);
 
     ImGui::End();
 }

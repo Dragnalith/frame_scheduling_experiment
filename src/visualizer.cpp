@@ -154,11 +154,11 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
     bool PatternJob::try_exec(float time)
     {
-        bool cond = !m_type->generateNextFrame || m_type->generateNextFrame && !m_simulator->frame_pool_empty();
+        bool cond = !m_type->generate_next || m_type->generate_next && !m_simulator->frame_pool_empty();
 
         if (cond)
         {
-            if (m_type->isFirst)
+            if (m_type->is_first)
             {
                 m_frame->start_time = time - m_duration;
             }
@@ -167,13 +167,13 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
                 m_simulator->push_job(std::make_shared<PatternJob>(m_type->next, m_simulator, m_frame));
             }
 
-            if (m_type->generateNextFrame)
+            if (m_type->generate_next)
             {
                 auto f = m_simulator->start_frame();
-                m_simulator->push_job(std::make_shared<PatternJob>(App::get().Pattern.first, m_simulator, f));
+                m_simulator->push_job(std::make_shared<PatternJob>(App::get().Pattern->first, m_simulator, f));
             }
 
-            if (m_type->releaseFrame)
+            if (m_type->release_frame)
             {
                 m_frame->end_time = time;
                 m_simulator->push_frame(m_frame);
@@ -221,7 +221,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
      }
 
 
-    Simulator::Simulator(int core, int frame_pool, int seed, float stddev)
+    Simulator::Simulator(std::shared_ptr<FramePattern> pattern, int core, int frame_pool, int seed, float stddev)
         : m_core_count(core)
         , m_frame_pool_size(frame_pool)
         , m_frame_count(0)
@@ -243,7 +243,7 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         }
 
         auto f = start_frame();
-        push_job(std::make_shared<PatternJob>(App::get().Pattern.first, this, f));
+        push_job(std::make_shared<PatternJob>(App::get().Pattern->first, this, f));
     }
 
     void Simulator::draw()
@@ -410,11 +410,13 @@ void Simulator::freeze(const std::string& name)
 
 void DrawVisualizer()
 {
+    auto& app = App::get();
+
     if (App::get().ControlOption.Restart)
     {
-        if (App::get().CurrentSimulation)
+        if (App::get().CurrentSimulation && app.ControlOption.Keep)
         {
-            App::get().CurrentSimulation->freeze(App::get().Pattern.first->name);
+            App::get().CurrentSimulation->freeze(App::get().Pattern->first->name);
             App::get().FrozenSimulations.insert(App::get().CurrentSimulation);
         }
 
@@ -423,7 +425,7 @@ void DrawVisualizer()
         {
             App::get().SimOption.Seed = (int) std::chrono::system_clock::now().time_since_epoch().count();
         }
-        App::get().CurrentSimulation = std::make_shared<Simulator>(App::get().SimOption.CoreNum, App::get().SimOption.FramePoolSize, App::get().SimOption.Seed, App::get().SimOption.Random);
+        App::get().CurrentSimulation = std::make_shared<Simulator>(app.Pattern, App::get().SimOption.CoreNum, App::get().SimOption.FramePoolSize, App::get().SimOption.Seed, App::get().SimOption.Random);
     }
     App::get().LastSimOption = App::get().SimOption;
 

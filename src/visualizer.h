@@ -115,10 +115,12 @@ protected:
     std::shared_ptr<Frame> m_frame;
 };
 
+struct FramePattern;
+
 class Simulator
 {
 public:
-    Simulator(int core, int frame_pool, int seed, float stddev);
+    Simulator(std::shared_ptr<FramePattern> pattern, int core, int frame_pool, int seed, float stddev);
 
     void step();
     void draw();
@@ -149,7 +151,10 @@ private:
     int m_core_count;
     int m_frame_pool_size;
     int m_frame_count;
+
     ImVec2 m_max;
+
+    std::shared_ptr<FramePattern> m_pattern;
 
     int m_diplayed_timebox = 0;
     bool m_frozen = false;

@@ -6,18 +6,23 @@
 #include "node_editor.h"
 #include "visualizer.h"
 
+
+#include "NodeEditor.h"
+
+namespace ed = ax::NodeEditor;
+
 struct App
 {
-    std::unordered_map<uint32_t, std::shared_ptr<JobType>> Types;
-    std::unordered_map<uint32_t, uint32_t> Id2Node;
+    std::shared_ptr<FramePattern> Pattern;
 
     SimulationOption SimOption;
     SimulationOption LastSimOption;
     ControlOption ControlOption;
     DisplayOption DisplayOption;
 
+    ax::NodeEditor::EditorContext* NodeEditorContext = nullptr;
 
-    FramePattern Pattern;
+
 
     std::shared_ptr<Simulator> CurrentSimulation;
 

@@ -5,7 +5,10 @@
 #include <string>
 #include <memory>
 
-void ShowExampleAppCustomNodeGraph(bool* opened, ax::NodeEditor::EditorContext* context);
+#include <unordered_map>
+#include <unordered_set>
+
+void DrawNodeEditor(bool* opened);
 
 void OtherNodeEditor(bool *opened);
 
@@ -14,9 +17,9 @@ struct JobType
 {
     JobType();
 
-    bool isFirst = false;
-    bool generateNextFrame = false;
-    bool releaseFrame = false;
+    bool is_first = false;
+    bool generate_next = false;
+    bool release_frame = false;
     char name[255];
     std::shared_ptr<JobType> next = nullptr;
     float duration = 100.f;
@@ -29,5 +32,15 @@ struct JobType
 
 struct FramePattern
 {
+    void add(std::shared_ptr<JobType> type)
+    {
+        Types.emplace(type->nid, type);
+        Id2Node.emplace(type->iid, type->nid);
+        Id2Node.emplace(type->oid, type->nid);
+        Id2Node.emplace(type->lid, type->nid);
+    }
+
     std::shared_ptr<JobType> first;
+    std::unordered_map<uint32_t, std::shared_ptr<JobType>> Types;
+    std::unordered_map<uint32_t, uint32_t> Id2Node;
 };

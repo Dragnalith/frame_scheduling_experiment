@@ -1,8 +1,8 @@
 !!! Changing frame pattern does not disturbe the current simulation
 
 # Visualizer
-* When created by end, node has correct position
 * Node have different color
+* Display frame_pool
 * Display Core number and line to easily see core line
 * All frame of a frame pool as different color but between a loop change the darkness
 * Display the min frame time and max frame time
@@ -15,3 +15,4 @@
 # Scheduler
 * Force synchronization on external event (like input or vsync), and make sure you can dynamically resize
 * Timebox can depends on the same time of a preceding frame
+* Pre-designed simulation

@@ -7,8 +7,8 @@
 #include "imgui_internal.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "node_editor.h"
 #include "NodeEditor.h"
+#include "node_editor.h"
 #include <stdio.h>
 //#include <GL/gl3w.h>    // This example is using gl3w to access OpenGL functions. You may freely use any other OpenGL loader such as: glew, glad, glLoadGen, etc.
 //#include <glew.h>
@@ -20,29 +20,57 @@
 
 App* App::s_App;
 
+std::shared_ptr<JobType> create_job_type(const char* name, float duration,
+    bool is_first = false, bool generate_next = false, bool release_frame = false)
+{
+    auto j = std::make_shared<JobType>();
+    j->duration = duration;
+    j->is_first = is_first;
+    j->generate_next = generate_next;
+    j->release_frame = release_frame;
+    strncpy(j->name, name, 250);
+
+    return j;
+}
+
+std::shared_ptr<FramePattern> create_default_pattern()
+{
+    auto& app = App::get();
+    auto pos = ImVec2(50.f, 50.f);
+    float offset = 300.f;
+    auto pattern = std::make_shared<FramePattern>();
+
+    auto prepare = create_job_type("Prepare", 100.f, true, true, false);
+    pattern->add(prepare);
+    ed::SetNodePosition(prepare->nid, pos);
+    pos.x += offset;
+
+    auto render = create_job_type("Render", 200.f, false, false, false);
+    pattern->add(render);
+    prepare->next = render;
+
+    ed::SetNodePosition(render->nid, pos);
+    pos.x += offset;
+
+    auto kick = create_job_type("Kick", 60.f, false, false, true);
+    pattern->add(kick);
+    render->next = kick;
+    ed::SetNodePosition(kick->nid, pos);
+    pos.x += offset;
+
+    pattern->first = prepare;
+
+    return pattern;
+}
+
 void App::init()
 {
     s_App = new App();
+    s_App->NodeEditorContext = ax::NodeEditor::CreateEditor();
+    ed::SetCurrentEditor(s_App->NodeEditorContext);
 
-    auto j = std::make_shared<JobType>();
-    j->isFirst = true;
-    j->generateNextFrame = true;
-    strcpy(j->name, "Prepare");
-    s_App->Pattern.first = j;
-    App::get().Types.emplace(j->nid, j);
 
-    auto j2 = std::make_shared<JobType>();
-    j2->duration = 200.f;
-    strcpy(j2->name, "Render");
-    App::get().Types.emplace(j2->nid, j2);
-    j->next = j2;
-
-    auto j3 = std::make_shared<JobType>();
-    j3->releaseFrame = true;
-    j3->duration = 60.f;
-    strcpy(j3->name, "Kick");
-    App::get().Types.emplace(j3->nid, j3);
-    j2->next = j3;
+    s_App->Pattern = create_default_pattern();
 }
 
 App& App::get() {
@@ -58,12 +86,8 @@ void StyleColorsSofty(ImGuiStyle* dst = NULL);
 
 namespace ed = ax::NodeEditor;
 
-static ed::EditorContext* g_Context = nullptr;
-
 int main(int, char**)
 {
-    App::init();
-
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -128,7 +152,8 @@ int main(int, char**)
 
     ed::Config config;
     config.SettingsFile = "Simple.json";
-    g_Context = ed::CreateEditor();
+
+    App::init();
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -172,7 +197,7 @@ int main(int, char**)
 
 
         bool yes = true;
-        ShowExampleAppCustomNodeGraph(&yes, g_Context);
+        DrawNodeEditor(&yes);
         //OtherNodeEditor(&yes);
         DrawVisualizer();
 
