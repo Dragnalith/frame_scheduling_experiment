@@ -119,17 +119,17 @@ void DrawNodeEditor(bool* opened)
         ed::PinId startPinId = 0, endPinId = 0;
         if (ed::QueryNewLink(&startPinId, &endPinId))
         {
-            auto in = App::get().Pattern->Types[App::get().Pattern->Id2Node[(uint32_t) startPinId]];
-            auto out = App::get().Pattern->Types[App::get().Pattern->Id2Node[(uint32_t) endPinId]];
+            auto in = App::get().Pattern->Types[App::get().Pattern->Id2Node[(uint32_t)static_cast<uintptr_t>(startPinId)]];
+            auto out = App::get().Pattern->Types[App::get().Pattern->Id2Node[(uint32_t)(uintptr_t) endPinId]];
 
 
-            if (in->iid == (uint32_t) startPinId)
+            if (in->iid == (uint32_t)(uintptr_t) startPinId)
             {
                 std::swap(in, out);
                 std::swap(startPinId, endPinId);
             }
 
-            if ((uint32_t) endPinId == in->iid)
+            if ((uint32_t)(uintptr_t) endPinId == in->iid)
             {
                 in->next = nullptr;
             }

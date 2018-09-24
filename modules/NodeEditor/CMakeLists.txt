@@ -1,18 +1,18 @@
 
 set(_NodeEditor_Sources
-    Include/NodeEditor.h
-    Include/picojson.h
-    Source/NodeEditor.cpp
+    "Include/NodeEditor.h"
+    "Include/picojson.h"
+    "Source/NodeEditor.cpp"
 
-    Source/Editor.h
-    Source/Editor.cpp
+    "Source/Editor.h"
+    "Source/Editor.cpp"
 
-    Source/Shared/Interop.h
-    Source/Shared/Math2D.h
-    Source/Shared/Math2D.inl
+    "Source/Shared/Interop.h"
+    "Source/Shared/Math2D.h"
+    "Source/Shared/Math2D.inl"
 )
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${_NodeEditor_Sources})
+#source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${_NodeEditor_Sources})
 
 add_library(NodeEditor STATIC ${_NodeEditor_Sources})
 
