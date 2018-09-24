@@ -1,14 +1,8 @@
-!!! Changing frame pattern does not disturbe the current simulation
-
 # Visualizer
 * Node have different color
-* Display frame_pool
-* Display Core number and line to easily see core line
-* All frame of a frame pool as different color but between a loop change the darkness
 * Display the min frame time and max frame time
 
 # Simulation
-* Make impossible to change the frame pattern of the current simulation
 * A job can depends on several one
 * Generate in several ticks to keep the application interactive, i.e changing one parameter directly change the result
 

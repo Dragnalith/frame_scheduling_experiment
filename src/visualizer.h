@@ -18,7 +18,7 @@ struct SimulationOption
     int FramePoolSize = 2;
     float Random = 0.f;
     int Seed = 0;
-    bool AutoSeed = true;
+    bool AutoSeed = false;
 
     bool operator==(const SimulationOption& other)
     {
@@ -47,6 +47,7 @@ struct DisplayOption
 {
     bool ShowFrameTime = true;
     bool ShowCoreTime = true;
+    bool ShowFramePool = true;
     float Height = 20.f;
     float Scale = 1.f;
 };

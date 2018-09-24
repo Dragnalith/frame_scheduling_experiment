@@ -241,8 +241,41 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 
         ImGui::Begin(m_name.c_str(), &yes, ImGuiWindowFlags_HorizontalScrollbar);
 
-        auto origin = ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+        auto coreOffset = ImVec2(50.f, 30.f);
+        auto timelineOrigin = ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()) + coreOffset;
         ImU32 col = 0;
+
+        auto drawlist = ImGui::GetWindowDrawList();
+        auto winPos = ImGui::GetWindowPos();
+        auto winSize = ImGui::GetWindowSize();
+        if (App::get().DisplayOption.ShowFramePool)
+        {
+            auto pos = winPos + ImVec2(10.f, 30.f);
+            auto size = ImVec2(10.f, 10.f);
+            float offset = 15.f;
+            for (int i = 0; i < m_frame_pool.size(); i++)
+            {
+                drawlist->AddRectFilled(pos, pos + size, 0xffaaaaaa);
+                pos.x += offset;
+            }
+        }
+
+        auto corelineOrigin = ImGui::GetCursorPos() + winPos;
+        for (int i = 0; i < m_core_count; i++)
+        {
+            auto p1 = corelineOrigin + coreOffset;
+            p1.y += i * App::get().DisplayOption.Height;
+            auto p2 = p1 + ImVec2(winSize.x, App::get().DisplayOption.Height);
+
+            if (i % 2 == 0)
+            {
+                drawlist->AddRectFilled(p1, p2, 0xff0c0c0c);
+            }
+            else
+            {
+                drawlist->AddRectFilled(p1, p2, 0xff111111);
+            }
+        }
 
         float windowMin = ImGui::GetScrollX();
         float windowMax = windowMin + ImGui::GetWindowSize().x;
@@ -251,13 +284,25 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
         {
             if (t.start_time <= windowMax && t.end_time >= windowMin)
             {
-                DrawTimeBox(origin, t);
+                DrawTimeBox(timelineOrigin, t);
                 m_diplayed_timebox += 1;
             }
         }
         if (App::get().DisplayOption.ShowCoreTime)
         {
-            DrawCore(origin);
+            DrawCore(timelineOrigin);
+        }
+
+        for (int i = 0; i < m_core_count; i++)
+        {
+            auto p1 = corelineOrigin + ImVec2(0.f, coreOffset.y);
+            p1.y += i * App::get().DisplayOption.Height;
+            auto p2 = p1 + ImVec2(coreOffset.x, App::get().DisplayOption.Height);
+
+            drawlist->AddRectFilled(p1, p2, 0xff000000);
+            std::stringstream s;
+            s << "Core " << i;
+            drawlist->AddText(p1, 0xffffffff, s.str().c_str());
         }
 
         // Add an offset to scroll a bit more than the max of the timeline
@@ -487,6 +532,7 @@ void DrawVisualizer()
     {
         ImGui::Checkbox("Show FrameTime", &App::get().DisplayOption.ShowFrameTime);
         ImGui::Checkbox("Show Core Time", &App::get().DisplayOption.ShowCoreTime);
+        ImGui::Checkbox("Show Frame Pool", &App::get().DisplayOption.ShowFramePool);
         ImGui::SliderFloat("Height", &App::get().DisplayOption.Height, 5.f, 40.f);
         ImGui::SliderFloat("Scale", &App::get().DisplayOption.Scale, 1.f, 3.f);
     }
