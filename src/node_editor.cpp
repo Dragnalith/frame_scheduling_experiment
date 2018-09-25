@@ -111,7 +111,6 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         {
             frame_flow->start_next_frame_stage = i;
         }
-        ImGui::Checkbox("Create Has Priority", &stage.create_has_priority);
 
         if (i > 0)
         {

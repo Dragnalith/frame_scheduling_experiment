@@ -210,6 +210,8 @@ public:
 
     void freeze(const std::string&name);
 
+    void request_start() { m_request_start_count += 1; }
+
 private:
     int m_core_count;
     int m_frame_pool_size;
@@ -217,11 +219,15 @@ private:
 
     ImVec2 m_max;
 
+    std::shared_ptr<FrameFlow> m_flow;
     float m_critical_path_time;
 
     float m_last_push_time = 0.f;
     int m_diplayed_timebox = 0;
     bool m_frozen = false;
+
+
+    int m_request_start_count = 0;
 
     SimulationOption m_option;
     std::string m_name = "Timeline";

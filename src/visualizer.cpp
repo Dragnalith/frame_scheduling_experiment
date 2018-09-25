@@ -379,7 +379,7 @@ bool PatternJob::is_release() const
 
 void PatternJob::before_schedule(float time)
 {
-    if (m_stage_index == 0) {
+    if (is_first()) {
         m_frame->start_time = time;
     }
 }
@@ -422,8 +422,7 @@ bool PatternJob::try_exec(float time)
         } else {
             auto gen_next = [&]() {
                 if (generate_next) {
-                    auto f = m_simulator->start_frame(time);
-                    create_job(m_flow, 0, m_simulator, f);
+                    m_simulator->request_start();
                 }
             };
 
@@ -479,6 +478,7 @@ Simulator::Simulator(std::shared_ptr<FrameFlow> flow, const SimulationOption& op
     , m_generator(option.Seed)
     , m_distribution((1.f - option.Random), (1.f + option.Random))
     , m_option(option)
+    , m_flow(flow)
 {
     for (int i = 0; i < m_core_count; i++) {
         m_cores.emplace_back();
@@ -495,8 +495,7 @@ Simulator::Simulator(std::shared_ptr<FrameFlow> flow, const SimulationOption& op
         m_frame_available.push_back(f);
     }
 
-    auto f = start_frame(0.f);
-    create_job(flow, 0, this, f);
+    request_start();
 }
 
 void Simulator::draw()
@@ -605,6 +604,15 @@ void Simulator::step(bool autostep)
 
     m_step_count += 1;
 
+    if (m_request_start_count > 0 && !frame_pool_empty())
+    {
+        auto f = start_frame(0.f);
+        create_job(m_flow, 0, this, f);
+        m_request_start_count -= 1;
+
+        return;
+    }
+
     std::sort(m_cores.begin(), m_cores.end(), [](auto& a, auto& b) -> bool {
         return a.time < b.time || (a.time == b.time && a.index < b.index);
     });
@@ -684,6 +692,7 @@ std::shared_ptr<Frame> Simulator::start_frame(float time)
 
     f->frame_index = m_frame_count;
     m_frame_count += 1;
+    f->start_time = time;
     return f;
 }
 
