@@ -459,6 +459,7 @@ bool Core::try_exec()
 
 Simulator::Simulator(std::shared_ptr<FrameFlow> flow, const SimulationOption& option)
     : m_core_count(option.CoreNum)
+    , m_flow(flow)
     , m_frame_pool_size(option.FramePoolSize)
     , m_frame_count(0)
     , m_generator(option.Seed)
@@ -508,6 +509,9 @@ void Simulator::draw()
             pos.x += offset;
         }
     }
+    std::stringstream s;
+    s << "critical path time: " << m_flow->compute_critical_path_time();
+    drawlist->AddText(winPos + ImVec2(100.f, 30.f), g_White, s.str().c_str());
 
     auto corelineOrigin = ImGui::GetCursorPos() + winPos;
     for (int i = 0; i < m_core_count; i++) {
@@ -522,6 +526,7 @@ void Simulator::draw()
         }
     }
 
+    // display critical path time
     float windowMin = ImGui::GetScrollX();
     float windowMax = (windowMin + ImGui::GetWindowSize().x);
     m_diplayed_timebox = 0;

@@ -534,8 +534,13 @@ void OtherNodeEditor(bool *opened)
 
 float FrameFlow::compute_critical_path_time()
 {
-    assert(false);
-    return 0.f;
+    float time = 0.f;
+    for (int i = 0; i < stages.size(); i++)
+    {
+        time += stage_duration(i);
+    }
+
+    return time;
 }
 
 float FrameFlow::stage_duration(int index)
