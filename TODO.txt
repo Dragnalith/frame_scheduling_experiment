@@ -3,7 +3,6 @@ it is waiting for a frame to be released and run the next one.
 
 * Make macro stage (with a stage id or something, so we can wait for several stage to finish before executing new one)
 * Create a frame looking like naughting: 2 stages, synchronized,
-* Display kick as bar
 
 # New frame Editor
 - stage based in row

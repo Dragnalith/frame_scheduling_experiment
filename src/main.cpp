@@ -45,8 +45,8 @@ void App::init()
     {
         auto flow = std::make_shared<FrameFlow>("Sequencial");
         flow->stages.clear();
-        flow->stages.push_back(std::make_shared<FrameStage>("Simulation", 1.f, 1, false));
-        flow->stages.push_back(std::make_shared<FrameStage>("Render", 1.f, 1, false));
+        flow->stages.push_back(std::make_shared<FrameStage>("Simulation", 0, 1.f, 1, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render", 1, 1.f, 1, false, 1));
         flow->start_next_frame_stage = 1;
 
         s_App->Flows.push_back(flow);
@@ -55,8 +55,8 @@ void App::init()
     {
         auto flow = std::make_shared<FrameFlow>("Parallel");
         flow->stages.clear();
-        flow->stages.push_back(std::make_shared<FrameStage>("Simulation", 1.f, 1, false));
-        flow->stages.push_back(std::make_shared<FrameStage>("Render", 1.f, 1, false));
+        flow->stages.push_back(std::make_shared<FrameStage>("Simulation", 0, 1.f, 1, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render", 1, 1.f, 1, false, 1));
         flow->start_next_frame_stage = 0;
 
         s_App->Flows.push_back(flow);

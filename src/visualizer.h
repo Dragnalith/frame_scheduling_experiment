@@ -128,7 +128,7 @@ struct Frame
     float start_time = -1.f;
     float end_time = -1.f;
 
-    std::unordered_set<uint32_t> finished_node;
+    std::unordered_map<int, int> finished_stage;
 };
 
 class Job

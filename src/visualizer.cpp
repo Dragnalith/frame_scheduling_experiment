@@ -388,10 +388,16 @@ bool PatternJob::is_ready() const
 {
     const FrameStage& stage = *m_flow->stages[m_stage_index];
     bool is_ready = true;
-    if (stage.one_frame_at_a_time && m_frame->frame_index > 0) {
-        auto prev = m_simulator->get_frame(m_frame->frame_index - 1);
-        if (prev) {
-            is_ready = prev->finished_node.find(stage.id.node) != prev->finished_node.end();
+
+    auto prev = m_simulator->get_frame(m_frame->frame_index - 1);
+    if (stage.wait && prev && m_frame->frame_index > 0) {
+        if (prev->finished_stage.find(stage.wait_tag) == prev->finished_stage.end())
+        {
+            is_ready = false;
+        }
+        else
+        {
+            is_ready = prev->finished_stage[stage.wait_tag] == m_flow->count_stage(stage.wait_tag);
         }
     }
 
@@ -439,7 +445,15 @@ bool PatternJob::try_exec(float time)
             }
 
             // TODO: change node id, with stage tag
-            m_frame->finished_node.insert(stage.id.node);
+
+            if (m_frame->finished_stage.find(stage.stage_tag) == m_frame->finished_stage.end())
+            {
+                m_frame->finished_stage.emplace(stage.stage_tag, 1);
+            }
+            else
+            {
+                m_frame->finished_stage[stage.stage_tag] += 1;
+            }
         }
 
         return true;
@@ -692,7 +706,7 @@ void Simulator::push_frame(std::shared_ptr<Frame> f)
     m_last_push_time = f->end_time;
 
     f->frame_index = -1;
-    f->finished_node.clear();
+    f->finished_stage.clear();
 }
 
 std::shared_ptr<Job> Simulator::pop_job()

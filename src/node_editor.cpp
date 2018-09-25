@@ -46,12 +46,14 @@ JobType::JobType()
     strncpy(name, "No Name", 250);
 }
 
-FrameStage::FrameStage(const char* name, float w, int split, bool sync)
+FrameStage::FrameStage(const char* name, int s_tag, float w, int split, bool sync, int w_tag)
 {
     strncpy(this->name, name, 100);
+    stage_tag = s_tag;
     weight = w;
     split_count = split;
-    one_frame_at_a_time = sync;
+    wait = sync;
+    wait_tag = w_tag;
 }
 
 
@@ -65,8 +67,8 @@ ID::ID()
 
 FrameFlow::FrameFlow(const char* n) {
     strncpy(name, n, 200);
-    stages.push_back(std::make_shared<FrameStage>("Simulation", 1.f, 1, false));
-    stages.push_back(std::make_shared<FrameStage>("Render", 1.f, 1, false));
+    stages.push_back(std::make_shared<FrameStage>("Simulation", 0, 1.f, 1, false, 0));
+    stages.push_back(std::make_shared<FrameStage>("Render", 1, 1.f, 1, false, 1));
 }
 
 struct JobType;
@@ -99,7 +101,10 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         ImGui::DragFloat("Weight", &stage.weight, 0.1f, 0.1f, 10.f);
         ImGui::InputInt("Split", &stage.split_count, 1, 1);
         stage.split_count = stage.split_count < 1 ? 1 : stage.split_count;
-        ImGui::Checkbox("Wait", &stage.one_frame_at_a_time);
+
+        ImGui::Checkbox("Wait", &stage.wait);
+        ImGui::InputInt("Wait Tag", &stage.wait_tag);
+        ImGui::InputInt("Stage Tag", &stage.stage_tag);
 
         bool foo = frame_flow->start_next_frame_stage == i;
         if (ImGui::Checkbox("Create Next", &foo))
@@ -132,7 +137,7 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
 
         if (ImGui::Button("Add"))
         {
-            auto new_stage = std::make_shared<FrameStage>(stage.name, stage.weight, stage.split_count, stage.one_frame_at_a_time);
+            auto new_stage = std::make_shared<FrameStage>(stage.name, stage.stage_tag, stage.weight, stage.split_count, stage.wait, stage.wait_tag);
             frame_flow->stages.insert(frame_flow->stages.begin() + i, new_stage);
             ImGui::SameLine();
         }
@@ -140,7 +145,7 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         if (frame_flow->stages.size() > 1)
         {
             if (ImGui::Button("Delete")) {
-                if (stage.one_frame_at_a_time)
+                if (frame_flow->start_next_frame_stage == i)
                 {
                     frame_flow->start_next_frame_stage = 0;
                 }
@@ -532,6 +537,19 @@ void OtherNodeEditor(bool *opened)
         ImGui::End();
 }
 
+int FrameFlow::count_stage(int wait_tag)
+{
+    int count = 0;
+    for (int i = 0; i < stages.size(); i++)
+    {
+        if (stages[i]->stage_tag == wait_tag)
+        {
+            count += 1;
+        }
+    }
+
+    return count;
+}
 float FrameFlow::compute_critical_path_time()
 {
     float time = 0.f;

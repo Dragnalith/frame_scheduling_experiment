@@ -62,12 +62,14 @@ struct ID
 };
 
 struct FrameStage {
-    FrameStage(const char* name, float w, int split, bool sync);
+    FrameStage::FrameStage(const char* name, int stage_tag, float w, int split, bool wait, int wait_tag);
 
     char name[101];
     float weight;
     int split_count;
-    bool one_frame_at_a_time;
+    bool wait = false;
+    int wait_tag = -1;
+    int stage_tag;
     bool create_has_priority = false;
 
     ID id;
@@ -84,6 +86,7 @@ struct FrameFlow {
     float compute_critical_path_time();
 
     float stage_duration(int index);
+    int count_stage(int wait_tag);
 
     char name[201];
 };
