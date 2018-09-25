@@ -13,6 +13,7 @@ void DrawNodeEditor(bool* opened);
 void OtherNodeEditor(bool *opened);
 
 
+
 struct JobType
 {
     JobType();
@@ -47,3 +48,43 @@ struct FramePattern
     std::unordered_map<uint32_t, std::shared_ptr<JobType>> Types;
     std::unordered_map<uint32_t, uint32_t> Id2Node;
 };
+
+
+
+struct ID
+{
+    ID();
+
+    uint32_t node;
+    uint32_t link;
+    uint32_t in;
+    uint32_t out;
+};
+
+struct FrameStage {
+    FrameStage(const char* name, float w, int split, bool sync);
+
+    char name[101];
+    float weight;
+    int split_count;
+    bool one_frame_at_a_time;
+
+    ID id;
+};
+
+struct FrameFlow {
+    FrameFlow();
+
+    std::vector<std::shared_ptr<FrameStage>> stages;
+    
+    float duration = 500.f;
+    int start_next_frame_stage = 0;
+
+    float compute_critical_path_time()
+    {
+        assert(false);
+        return 0.f;
+    }
+};
+
+void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow);

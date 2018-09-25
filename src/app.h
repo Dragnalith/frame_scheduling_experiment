@@ -15,6 +15,8 @@ struct App
 {
     std::shared_ptr<FramePattern> Pattern;
 
+    std::shared_ptr<FrameFlow> Flow;
+
     SimulationOption SimOption;
     ControlOption ControlOption;
     DisplayOption DisplayOption;

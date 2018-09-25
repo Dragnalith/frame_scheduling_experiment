@@ -40,6 +40,8 @@ void App::init()
     ed::SetCurrentEditor(s_App->NodeEditorContext);
 
     App::set_preset(get_default_preset());
+
+    s_App->Flow = std::make_shared<FrameFlow>();
 }
 
 void App::set_preset(const Preset& p)
@@ -176,6 +178,7 @@ int main(int, char**)
 
 
         bool yes = true;
+        DrawFrameEditor(App::get().Flow);
         DrawNodeEditor(&yes);
         //OtherNodeEditor(&yes);
         DrawVisualizer();
@@ -323,4 +326,5 @@ void StyleColorsSofty(ImGuiStyle* dst)
     style->Colors[ImGuiCol_ScrollbarGrabActive] = darker;
 
 }
+
 

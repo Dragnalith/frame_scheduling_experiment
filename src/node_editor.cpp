@@ -43,13 +43,121 @@ JobType::JobType()
     iid = allocated_id();
     oid = allocated_id();
     lid = allocated_id();
-    strncpy(name,"No Name", 250);
+    strncpy(name, "No Name", 250);
+}
+
+FrameStage::FrameStage(const char* name, float w, int split, bool sync)
+{
+    strncpy(this->name, name, 100);
+    weight = w;
+    split_count = split;
+    one_frame_at_a_time = sync;
 }
 
 
+ID::ID()
+{
+    node = allocated_id();
+    link = allocated_id();
+    in = allocated_id();
+    out = allocated_id();
+}
+
+FrameFlow::FrameFlow() {
+    stages.push_back(std::make_shared<FrameStage>("Simulation", 1.f, 1, false));
+    stages.push_back(std::make_shared<FrameStage>("Render", 1.f, 1, false));
+}
+
 struct JobType;
 
+void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
+{
+    ImGui::SetNextWindowPos(ImVec2(300, 0), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(1200, 600), ImGuiSetCond_FirstUseEver);
+    ImGui::Begin("Frame Editor");
 
+    ImGui::DragFloat("Duration", &frame_flow->duration, 1.f, 10.f, 1000.f);
+
+    ed::Begin("Frame Editor", ImVec2(0, 0));
+
+    auto pos = ImVec2(0.f, 0.f);
+    const float offset = 200.f;
+
+    for (int i = 0; i < frame_flow->stages.size(); i++) 
+    {
+        FrameStage& stage = *frame_flow->stages[i];
+
+        ed::SetNodePosition(stage.id.node, pos);
+
+        ImGui::PushID(stage.id.node);
+        ed::BeginNode(stage.id.node);
+
+        ImGui::PushItemWidth(100.f);
+        ImGui::InputText("Name", stage.name, 101);
+        ImGui::DragFloat("Weight", &stage.weight, 0.1f, 0.1f, 10.f);
+        ImGui::InputInt("Split", &stage.split_count, 1.f, 1, 100);
+        ImGui::Checkbox("Wait", &stage.one_frame_at_a_time);
+
+        bool foo = frame_flow->start_next_frame_stage == i;
+        if (ImGui::Checkbox("Create Next", &foo))
+        {
+            frame_flow->start_next_frame_stage = i;
+        }
+
+        if (i > 0)
+        {
+            ed::BeginPin(stage.id.in, ed::PinKind::Input);
+            ImGui::Text("->");
+            ed::PinPivotAlignment(ImVec2(0.f, 0.5f));
+            ed::PinPivotSize(ImVec2(0.f, 0.f));
+            ed::EndPin();
+            ImGui::SameLine();
+        }
+
+        ImGui::Text(stage.name);
+        ImGui::SameLine();
+
+        if (i < frame_flow->stages.size() - 1)
+        {
+            ed::BeginPin(stage.id.out, ed::PinKind::Output);
+            ImGui::Text("->");
+            ed::PinPivotSize(ImVec2(0.f, 0.f));
+            ed::EndPin();
+        }
+
+        ImGui::PopItemWidth();
+        ed::EndNode();
+
+        ImGui::SetCursorPos(pos + ImVec2(offset * 0.6f - 300.f, -50.f));
+
+        if (ImGui::Button("Add"))
+        {
+            auto new_stage = std::make_shared<FrameStage>(stage.name, stage.weight, stage.split_count, stage.one_frame_at_a_time);
+            frame_flow->stages.insert(frame_flow->stages.begin() + i, new_stage);
+        }
+
+        ImGui::SetCursorPos(pos + ImVec2(offset * 0.6f - 300.f, -20.f));
+
+        if (frame_flow->stages.size() > 1)
+        {
+            if (ImGui::Button("Delete")) {
+                if (stage.one_frame_at_a_time)
+                {
+                    frame_flow->start_next_frame_stage = 0;
+                }
+                frame_flow->stages.erase(frame_flow->stages.begin() + i);
+            }
+        }
+
+        pos.x += offset;
+
+        ImGui::PopID();
+    }
+
+    ed::End();
+
+    ImGui::End();
+}
 
 void DrawNodeEditor(bool* opened)
 {
