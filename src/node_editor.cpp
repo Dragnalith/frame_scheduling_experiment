@@ -95,7 +95,8 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         ImGui::PushItemWidth(100.f);
         ImGui::InputText("Name", stage.name, 101);
         ImGui::DragFloat("Weight", &stage.weight, 0.1f, 0.1f, 10.f);
-        ImGui::InputInt("Split", &stage.split_count, 1.f, 1);
+        ImGui::InputInt("Split", &stage.split_count, 1, 1);
+        stage.split_count = stage.split_count < 1 ? 1 : stage.split_count;
         ImGui::Checkbox("Wait", &stage.one_frame_at_a_time);
 
         bool foo = frame_flow->start_next_frame_stage == i;
@@ -103,6 +104,7 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         {
             frame_flow->start_next_frame_stage = i;
         }
+        ImGui::Checkbox("Create Has Priority", &stage.create_has_priority);
 
         if (i > 0)
         {
@@ -526,4 +528,42 @@ void OtherNodeEditor(bool *opened)
         ImGui::EndGroup();
 
         ImGui::End();
+}
+
+float FrameFlow::compute_critical_path_time()
+{
+    assert(false);
+    return 0.f;
+}
+
+float FrameFlow::stage_duration(int index)
+{
+    float total = 0.f;
+
+    for (auto s : stages)
+    {
+        total += s->weight;
+    }
+
+    total *= (float) stages[index]->split_count;
+    
+    float coeff = stages[index]->weight / total;
+    float val = duration * coeff;
+
+    return val;
+}
+
+void create_job(std::shared_ptr<FrameFlow> flow, int index, Simulator* sim, std::shared_ptr<Frame> frame)
+{
+    int count = flow->stages[index]->split_count;
+    if (count > 1) {
+
+        auto counter = std::make_shared<int>(count);
+        for (int i = 0; i < count; i++) {
+            sim->push_job(std::make_shared<PatternJob>(flow, index, sim, frame, counter));
+        }
+    }
+    else {
+        sim->push_job(std::make_shared<PatternJob>(flow, index, sim, frame));
+    }
 }

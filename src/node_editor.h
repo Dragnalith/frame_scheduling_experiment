@@ -68,6 +68,7 @@ struct FrameStage {
     float weight;
     int split_count;
     bool one_frame_at_a_time;
+    bool create_has_priority = false;
 
     ID id;
 };
@@ -77,14 +78,17 @@ struct FrameFlow {
 
     std::vector<std::shared_ptr<FrameStage>> stages;
     
-    float duration = 500.f;
+    float duration = 1500.f;
     int start_next_frame_stage = 0;
 
-    float compute_critical_path_time()
-    {
-        assert(false);
-        return 0.f;
-    }
+    float compute_critical_path_time();
+
+    float stage_duration(int index);
+
 };
+
+struct Frame;
+class Simulator;
+void create_job(std::shared_ptr<FrameFlow> flow, int index, Simulator* sim, std::shared_ptr<Frame> frame);
 
 void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow);

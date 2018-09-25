@@ -351,16 +351,13 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
 }
 }
 
-PatternJob::PatternJob(std::shared_ptr<JobType> type, Simulator* sim, std::shared_ptr<Frame> f, std::shared_ptr<int> counter)
+PatternJob::PatternJob(std::shared_ptr<FrameFlow> flow, int stage_index, Simulator* sim, std::shared_ptr<Frame> f, std::shared_ptr<int> counter)
     : Job(sim, f)
-    , m_type(type)
+    , m_flow(flow)
     , m_counter(counter)
+    , m_stage_index(stage_index)
 {
-    float div = 1.f;
-    if (counter) {
-        div = (float)*counter;
-    }
-    m_duration = m_type->duration * m_simulator->generate() / div;
+    m_duration = m_flow->stage_duration(m_stage_index) * m_simulator->generate();
 }
 
 float PatternJob::duration() const
@@ -369,31 +366,32 @@ float PatternJob::duration() const
 }
 const char* PatternJob::name() const
 {
-    return m_type->name;
+    return m_flow->stages[m_stage_index]->name;
 }
 bool PatternJob::is_first() const
 {
-    return m_type->is_first;
+    return m_stage_index == 0;
 }
 bool PatternJob::is_release() const
 {
-    return m_type->release_frame;
+    return m_stage_index == (m_flow->stages.size() - 1);
 }
 
 void PatternJob::before_schedule(float time)
 {
-    if (m_type->is_first) {
+    if (m_stage_index == 0) {
         m_frame->start_time = time;
     }
 }
 
 bool PatternJob::is_ready() const
 {
+    const FrameStage& stage = *m_flow->stages[m_stage_index];
     bool is_ready = true;
-    if (m_type->wait_previous && m_frame->frame_index > 0) {
+    if (stage.one_frame_at_a_time && m_frame->frame_index > 0) {
         auto prev = m_simulator->get_frame(m_frame->frame_index - 1);
         if (prev) {
-            is_ready = prev->finished_node.find(m_type->nid) != prev->finished_node.end();
+            is_ready = prev->finished_node.find(stage.id.node) != prev->finished_node.end();
         }
     }
 
@@ -402,7 +400,13 @@ bool PatternJob::is_ready() const
 
 bool PatternJob::try_exec(float time)
 {
-    bool can_generate_next = !m_type->generate_next || m_type->generate_next && !m_simulator->frame_pool_empty();
+    const FrameStage& stage = *m_flow->stages[m_stage_index];
+    bool generate_next = m_flow->start_next_frame_stage == m_stage_index;
+    bool generation_priority = stage.create_has_priority;
+    bool is_last = m_flow->stages.size() == m_stage_index + 1;
+
+    // TODO: Change how is done generation
+    bool can_generate_next = !generate_next || generate_next && !m_simulator->frame_pool_empty();
 
     bool cond = can_generate_next;
     if (cond) {
@@ -411,40 +415,31 @@ bool PatternJob::try_exec(float time)
             assert(*m_counter >= 1);
         } else {
             auto gen_next = [&]() {
-                if (m_type->generate_next) {
+                if (generate_next) {
                     auto f = m_simulator->start_frame(time);
-                    m_simulator->push_job(std::make_shared<PatternJob>(App::get().Pattern->first, m_simulator, f));
+                    create_job(m_flow, 0, m_simulator, f);
                 }
             };
 
-            if (m_type->generation_priority) {
+            if (generation_priority) {
                 gen_next();
             }
 
-            if (m_type->next) {
-
-                int count = m_type->next->count;
-                if (count > 1) {
-
-                    auto counter = std::make_shared<int>(count);
-                    for (int i = 0; i < count; i++) {
-                        m_simulator->push_job(std::make_shared<PatternJob>(m_type->next, m_simulator, m_frame, counter));
-                    }
-                } else {
-                    m_simulator->push_job(std::make_shared<PatternJob>(m_type->next, m_simulator, m_frame));
-                }
+            if (!is_last) {
+                create_job(m_flow, m_stage_index + 1, m_simulator, m_frame);
             }
 
-            if (!m_type->generation_priority) {
+            if (!generation_priority) {
                 gen_next();
             }
 
-            if (m_type->release_frame) {
+            if (is_last) {
                 m_frame->end_time = time;
                 m_simulator->push_frame(m_frame);
             }
 
-            m_frame->finished_node.insert(m_type->nid);
+            // TODO: change node id, with stage tag
+            m_frame->finished_node.insert(stage.id.node);
         }
 
         return true;
@@ -462,12 +457,12 @@ bool Core::try_exec()
     return false;
 }
 
-Simulator::Simulator(std::shared_ptr<FramePattern> pattern, const SimulationOption& option, float stddev)
+Simulator::Simulator(std::shared_ptr<FrameFlow> flow, const SimulationOption& option)
     : m_core_count(option.CoreNum)
     , m_frame_pool_size(option.FramePoolSize)
     , m_frame_count(0)
     , m_generator(option.Seed)
-    , m_distribution((1.f - stddev), (1.f + stddev))
+    , m_distribution((1.f - option.Random), (1.f + option.Random))
     , m_option(option)
 {
     for (int i = 0; i < m_core_count; i++) {
@@ -486,7 +481,7 @@ Simulator::Simulator(std::shared_ptr<FramePattern> pattern, const SimulationOpti
     }
 
     auto f = start_frame(0.f);
-    push_job(std::make_shared<PatternJob>(pattern->first, this, f));
+    create_job(flow, 0, this, f);
 }
 
 void Simulator::draw()
@@ -748,7 +743,7 @@ void DrawVisualizer()
         if (App::get().SimOption.AutoSeed) {
             App::get().SimOption.Seed = (int)std::chrono::system_clock::now().time_since_epoch().count();
         }
-        App::get().CurrentSimulation = std::make_shared<Simulator>(app.Pattern, App::get().SimOption, App::get().SimOption.Random);
+        App::get().CurrentSimulation = std::make_shared<Simulator>(app.Flow, App::get().SimOption);
     }
 
     if (App::get().CurrentSimulation && App::get().ControlOption.Step || App::get().ControlOption.AutoStep) {

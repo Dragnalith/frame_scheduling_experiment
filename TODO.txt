@@ -1,6 +1,7 @@
 !!Be careful to the senario where a stage do not schedule next stage because 
 it is waiting for a frame to be released and run the next one.
 
+* Priority on prepared a simulation option;
 * Make macro stage (with a stage id or something, so we can wait for several stage to finish before executing new one)
 * In C++ make easy to create several stage frame
 * In GUI: Disable the first node input, make it look special

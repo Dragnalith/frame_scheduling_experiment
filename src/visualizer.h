@@ -14,6 +14,8 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include "node_editor.h"
+
 struct SimulationOption
 {
     const char* Name = "Default Name";
@@ -153,11 +155,12 @@ protected:
 };
 
 struct FramePattern;
+struct FrameFlow;
 
 class Simulator
 {
 public:
-    Simulator(std::shared_ptr<FramePattern> pattern, const SimulationOption& option, float stddev);
+    Simulator(std::shared_ptr<FrameFlow> flow, const SimulationOption& option);
 
     void step(bool autostep);
     void draw();
@@ -229,11 +232,13 @@ private:
 };
 
 struct JobType;
+struct FrameFlow;
+struct FrameStage;
 
 class PatternJob : public Job
 {
 public:
-    PatternJob(std::shared_ptr<JobType> type, Simulator* sim, std::shared_ptr<Frame> f, std::shared_ptr<int> counter = nullptr);
+    PatternJob(std::shared_ptr<FrameFlow> flow, int stage_index, Simulator* sim, std::shared_ptr<Frame> f, std::shared_ptr<int> counter = nullptr);
 
     virtual float duration() const override;
     virtual const char* name() const override;
@@ -246,7 +251,8 @@ public:
 
 
 private:
-    std::shared_ptr<JobType> m_type;
+    std::shared_ptr<FrameFlow> m_flow;
+    int m_stage_index;
     float m_duration;
 
     std::shared_ptr<int> m_counter;
