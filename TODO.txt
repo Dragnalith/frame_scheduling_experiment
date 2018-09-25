@@ -1,3 +1,9 @@
+* In C++ make easy to create several stage frame
+* In GUI: Disable the first node input, make it look special
+* Create a frame looking like naughting: 2 stages, synchronized,
+* Display kick as bar
+
+
 # Visualizer
 * Node have different color
 * Display the min frame time and max frame time
@@ -9,7 +15,3 @@
 # Scheduler
 * Force synchronization on external event (like input or vsync), and make sure you can dynamically resize
 * Pre-designed simulation
-
-
-# Preset
-- Simu, Animation, Render
