@@ -157,6 +157,12 @@ protected:
 struct FramePattern;
 struct FrameFlow;
 
+struct FrameRate
+{
+    float timestamp;
+    float duration;
+};
+
 class Simulator
 {
 public:
@@ -166,6 +172,7 @@ public:
     void draw();
 
     const std::vector<TimeBox>& get_timeboxes() const { return m_timeboxes; }
+    const std::vector<FrameRate>& get_framerates() const { return m_framerate; }
     const ImVec2& get_max() const { return m_max; }
     const std::deque<std::shared_ptr<Job>>& get_queue();
 
@@ -212,7 +219,7 @@ private:
 
     float m_critical_path_time;
 
-    float m_last_push_time = -1.f;
+    float m_last_push_time = 0.f;
     int m_diplayed_timebox = 0;
     bool m_frozen = false;
 
@@ -227,6 +234,7 @@ private:
     std::deque<std::shared_ptr<Job>> m_job_queue;
     std::deque<std::shared_ptr<Frame>> m_frame_available;
     std::vector<TimeBox> m_timeboxes;
+    std::vector<FrameRate> m_framerate;
 
     int m_step_count = 0;
 };

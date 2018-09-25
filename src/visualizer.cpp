@@ -526,9 +526,29 @@ void Simulator::draw()
         }
     }
 
-    // display critical path time
     float windowMin = ImGui::GetScrollX();
     float windowMax = (windowMin + ImGui::GetWindowSize().x);
+
+    if (App::get().DisplayOption.ShowFrameRate)
+    {
+        for (const auto& f : get_framerates()) {
+            float t = f.timestamp * App::get().DisplayOption.Scale;
+            if (windowMin <= t && t <= windowMax) {
+                auto p1 = winPos + timelineOrigin + ImVec2(f.timestamp * App::get().DisplayOption.Scale, winPos.y);
+                auto p2 = winPos + timelineOrigin + ImVec2(f.timestamp * App::get().DisplayOption.Scale, winPos.y + winSize.y);
+                p1.y = winPos.y;
+                p2.y = winPos.y + winSize.y;
+
+                drawlist->AddLine(p1, p2, g_Grey, 1.f);
+                std::stringstream framerateText;
+                framerateText << f.duration;
+                drawlist->AddText(p1 + ImVec2(5.f, 30.f), g_Grey, framerateText.str().c_str());
+            }
+        }
+    }
+
+    // display critical path time
+
     m_diplayed_timebox = 0;
     for (const auto& t : get_timeboxes()) {
         if (t.start() <= windowMax && t.end() >= windowMin) {
@@ -536,6 +556,7 @@ void Simulator::draw()
             m_diplayed_timebox += 1;
         }
     }
+
     if (App::get().DisplayOption.ShowCoreTime) {
         DrawCore(timelineOrigin);
     }
@@ -661,11 +682,7 @@ void Simulator::push_frame(std::shared_ptr<Frame> f)
 {
     int frame_time_core_index = m_core_count + 2 + f->frame_index % m_frame_pool_size;
 
-    if (m_last_push_time >= 0.f) {
-        std::stringstream sss;
-        sss << f->end_time - m_last_push_time;
-        m_timeboxes.emplace_back(m_core_count + 1, -1, m_last_push_time, f->end_time, sss.str(), 0xff000000, TimeBoxType::FrameRate);
-    }
+    m_framerate.push_back({ f->end_time, f->end_time - m_last_push_time });
 
     std::stringstream s;
     s << f->end_time - f->start_time;
