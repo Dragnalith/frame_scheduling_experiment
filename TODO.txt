@@ -3,6 +3,15 @@
 * Create a frame looking like naughting: 2 stages, synchronized,
 * Display kick as bar
 
+# New frame Editor
+- stage based in row
+- click on a link to add a stage in the middle
+- render input button, create frame button, release frame button
+- choose number of split
+- use weight instead of duration
+- choose global frame duration
+- choose if weight change critical path time, or global frame duration
+
 
 # Visualizer
 * Node have different color
