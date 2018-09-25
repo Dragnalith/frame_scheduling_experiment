@@ -17,6 +17,8 @@ struct App
 
     std::shared_ptr<FrameFlow> Flow;
 
+    std::vector<std::shared_ptr<FrameFlow>> Flows;
+
     SimulationOption SimOption;
     ControlOption ControlOption;
     DisplayOption DisplayOption;

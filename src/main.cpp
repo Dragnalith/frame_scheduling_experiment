@@ -41,7 +41,28 @@ void App::init()
 
     App::set_preset(get_default_preset());
 
-    s_App->Flow = std::make_shared<FrameFlow>();
+
+    {
+        auto flow = std::make_shared<FrameFlow>("Sequencial");
+        flow->stages.clear();
+        flow->stages.push_back(std::make_shared<FrameStage>("Simulation", 1.f, 1, false));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render", 1.f, 1, false));
+        flow->start_next_frame_stage = 1;
+
+        s_App->Flows.push_back(flow);
+    }
+
+    {
+        auto flow = std::make_shared<FrameFlow>("Parallel");
+        flow->stages.clear();
+        flow->stages.push_back(std::make_shared<FrameStage>("Simulation", 1.f, 1, false));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render", 1.f, 1, false));
+        flow->start_next_frame_stage = 0;
+
+        s_App->Flows.push_back(flow);
+    }
+
+    s_App->Flow = s_App->Flows[0];
 }
 
 void App::set_preset(const Preset& p)

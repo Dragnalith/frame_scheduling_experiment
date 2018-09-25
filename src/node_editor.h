@@ -74,17 +74,18 @@ struct FrameStage {
 };
 
 struct FrameFlow {
-    FrameFlow();
+    FrameFlow(const char* n);
 
     std::vector<std::shared_ptr<FrameStage>> stages;
     
-    float duration = 1500.f;
+    float duration = 1000.f;
     int start_next_frame_stage = 0;
 
     float compute_critical_path_time();
 
     float stage_duration(int index);
 
+    char name[201];
 };
 
 struct Frame;

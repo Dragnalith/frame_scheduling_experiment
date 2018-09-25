@@ -766,21 +766,26 @@ void DrawVisualizer()
     ImGui::SetNextWindowSize(ImVec2(300, 600), ImGuiCond_FirstUseEver);
     ImGui::Begin("Options");
 
-    if (ImGui::BeginCombo("Preset", g_Presets[App::get().SelectedPreset]->name())) // The second parameter is the label previewed before opening the combo.
+    if (ImGui::BeginCombo("Frame Flow", app.Flows[app.SelectedPreset]->name)) // The second parameter is the label previewed before opening the combo.
     {
-        for (int n = 0; n < array_size(g_Presets); n++) {
-            bool is_selected = (App::get().SelectedPreset == n);
-            if (ImGui::Selectable(g_Presets[n]->name(), is_selected)) {
+        for (int n = 0; n < app.Flows.size(); n++) {
+            bool is_selected = (app.SelectedPreset == n);
+            if (ImGui::Selectable(app.Flows[n]->name, is_selected)) {
                 App::get().SelectedPreset = n;
 
                 ImGui::SetItemDefaultFocus();
-                App::set_preset(*g_Presets[App::get().SelectedPreset]);
+                app.Flow = app.Flows[app.SelectedPreset];
             }
         }
         ImGui::EndCombo();
     }
 
-    ImGui::Checkbox("Only Frame Pattern", &App::get().OnlyFramePattern);
+    if (ImGui::Button("Create New"))
+    {
+        app.Flows.push_back(std::make_shared<FrameFlow>("Default Name"));
+        app.SelectedPreset = app.Flows.size() - 1;
+        app.Flow = app.Flows.back();
+    }
 
     if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Text(App::get().SimOption.Name);

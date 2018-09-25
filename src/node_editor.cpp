@@ -63,7 +63,8 @@ ID::ID()
     out = allocated_id();
 }
 
-FrameFlow::FrameFlow() {
+FrameFlow::FrameFlow(const char* n) {
+    strncpy(name, n, 200);
     stages.push_back(std::make_shared<FrameStage>("Simulation", 1.f, 1, false));
     stages.push_back(std::make_shared<FrameStage>("Render", 1.f, 1, false));
 }
@@ -76,7 +77,8 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
     ImGui::SetNextWindowSize(ImVec2(1200, 600), ImGuiSetCond_FirstUseEver);
     ImGui::Begin("Frame Editor");
 
-    ImGui::DragFloat("Duration", &frame_flow->duration, 1.f, 10.f, 1000.f);
+    ImGui::DragFloat("Duration", &frame_flow->duration, 1.f, 10.f, 2000.f);
+    ImGui::InputText("Name", frame_flow->name, 200);
 
     ed::Begin("Frame Editor", ImVec2(0, 0));
 
