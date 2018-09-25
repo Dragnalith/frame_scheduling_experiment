@@ -210,7 +210,7 @@ private:
 
     ImVec2 m_max;
 
-    std::shared_ptr<FrameFlow> m_flow;
+    float m_critical_path_time;
 
     float m_last_push_time = -1.f;
     int m_diplayed_timebox = 0;
