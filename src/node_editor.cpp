@@ -95,7 +95,7 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         ImGui::PushItemWidth(100.f);
         ImGui::InputText("Name", stage.name, 101);
         ImGui::DragFloat("Weight", &stage.weight, 0.1f, 0.1f, 10.f);
-        ImGui::InputInt("Split", &stage.split_count, 1.f, 1, 100);
+        ImGui::InputInt("Split", &stage.split_count, 1.f, 1);
         ImGui::Checkbox("Wait", &stage.one_frame_at_a_time);
 
         bool foo = frame_flow->start_next_frame_stage == i;
@@ -115,28 +115,23 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         }
 
         ImGui::Text(stage.name);
-        ImGui::SameLine();
+
 
         if (i < frame_flow->stages.size() - 1)
         {
+            ImGui::SameLine();
             ed::BeginPin(stage.id.out, ed::PinKind::Output);
             ImGui::Text("->");
             ed::PinPivotSize(ImVec2(0.f, 0.f));
             ed::EndPin();
         }
 
-        ImGui::PopItemWidth();
-        ed::EndNode();
-
-        ImGui::SetCursorPos(pos + ImVec2(offset * 0.6f - 300.f, -50.f));
-
         if (ImGui::Button("Add"))
         {
             auto new_stage = std::make_shared<FrameStage>(stage.name, stage.weight, stage.split_count, stage.one_frame_at_a_time);
             frame_flow->stages.insert(frame_flow->stages.begin() + i, new_stage);
+            ImGui::SameLine();
         }
-
-        ImGui::SetCursorPos(pos + ImVec2(offset * 0.6f - 300.f, -20.f));
 
         if (frame_flow->stages.size() > 1)
         {
@@ -152,6 +147,9 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         pos.x += offset;
 
         ImGui::PopID();
+
+        ImGui::PopItemWidth();
+        ed::EndNode();
     }
 
     ed::End();
