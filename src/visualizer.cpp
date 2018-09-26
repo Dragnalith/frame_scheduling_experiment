@@ -12,7 +12,7 @@
 
 namespace {
 
-ImU32 g_White = ImGui::ColorConvertFloat4ToU32(ImVec4(0.95f, 0.95f, 0.95f, 1.0f));
+ImU32 g_White = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 1.f, 1.0f));
 ImU32 g_Green = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
 ImU32 g_Red = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
 ImU32 g_Blue = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 1.0f, 1.0f));
@@ -21,7 +21,7 @@ ImU32 g_Cyan = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 1.0f, 1.0f, 1.0f));
 ImU32 g_Magenta = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 0.0f, 1.0f, 1.0f));
 ImU32 g_Grey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
 ImU32 g_DarkGrey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
-ImU32 g_Black = ImGui::ColorConvertFloat4ToU32(ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+ImU32 g_Black = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 
 class SynchronePreset : public Preset {
 public:
@@ -501,10 +501,12 @@ Simulator::Simulator(std::shared_ptr<FrameFlow> flow, const SimulationOption& op
 void Simulator::draw()
 {
     bool yes = true;
-    ImGui::SetNextWindowSize(ImVec2(1500, 400), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(1900, 400), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowPos(ImVec2(0, 600), ImGuiCond_FirstUseEver);
 
-    ImGui::Begin(m_name.c_str(), &yes, ImGuiWindowFlags_HorizontalScrollbar);
+    std::stringstream s;
+    s << m_name << "(critical path time = " << m_critical_path_time << ")";
+    ImGui::Begin(s.str().c_str(), &yes, ImGuiWindowFlags_HorizontalScrollbar);
 
     auto coreOffset = ImVec2(50.f, 30.f);
     auto timelineOrigin = ImGui::GetCursorPos() - ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()) + coreOffset;
@@ -522,9 +524,6 @@ void Simulator::draw()
             pos.x += offset;
         }
     }
-    std::stringstream s;
-    s << "critical path time: " << m_critical_path_time;
-    drawlist->AddText(winPos + ImVec2(100.f, 30.f), g_White, s.str().c_str());
 
     auto corelineOrigin = ImGui::GetCursorPos() + winPos;
     for (int i = 0; i < m_core_count; i++) {
@@ -555,7 +554,7 @@ void Simulator::draw()
                 drawlist->AddLine(p1, p2, g_Grey, 1.f);
                 std::stringstream framerateText;
                 framerateText << f.duration;
-                drawlist->AddText(p1 + ImVec2(5.f, 30.f), g_Grey, framerateText.str().c_str());
+                drawlist->AddText(p1 + ImVec2(-f.duration * 0.5f, 30.f), g_Grey, framerateText.str().c_str());
             }
         }
     }
@@ -769,7 +768,7 @@ void Simulator::freeze(const std::string& name)
 {
     m_frozen = true;
     std::stringstream s;
-    s << g_FreezeCount << ' ' << m_option.Name << " (Core = " << m_core_count << ", Frame Pool = " << m_frame_pool_size << ")";
+    s << g_FreezeCount << ' ' << m_flow->name << " (Core = " << m_core_count << ", Frame Pool = " << m_frame_pool_size << ")";
     g_FreezeCount += 1;
     m_name = s.str();
 }
@@ -871,7 +870,7 @@ void DrawVisualizer()
         ImGui::InputInt("Max Auto Step", &App::get().ControlOption.MaxAutoStep);
     }
 
-    if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Display")) {
         ImGui::Checkbox("Show Frame Rate", &App::get().DisplayOption.ShowFrameRate);
         ImGui::Checkbox("Show Frame Time", &App::get().DisplayOption.ShowFrameTime);
         ImGui::Checkbox("Show Core Time", &App::get().DisplayOption.ShowCoreTime);

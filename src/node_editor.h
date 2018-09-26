@@ -80,7 +80,7 @@ struct FrameFlow {
 
     std::vector<std::shared_ptr<FrameStage>> stages;
     
-    float duration = 500.f;
+    float duration = 700.f;
     int start_next_frame_stage = 0;
 
     float compute_critical_path_time();

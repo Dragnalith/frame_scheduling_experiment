@@ -67,8 +67,9 @@ ID::ID()
 
 FrameFlow::FrameFlow(const char* n) {
     strncpy(name, n, 200);
-    stages.push_back(std::make_shared<FrameStage>("Simulation", 0, 1.f, 1, false, 0));
+    stages.push_back(std::make_shared<FrameStage>("Gameplay", 0, 1.f, 1, false, 0));
     stages.push_back(std::make_shared<FrameStage>("Render", 1, 1.f, 1, false, 1));
+    this->start_next_frame_stage = stages.size() - 1;
 }
 
 struct JobType;
@@ -76,7 +77,7 @@ struct JobType;
 void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
 {
     ImGui::SetNextWindowPos(ImVec2(300, 0), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(1200, 600), ImGuiSetCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(1600, 600), ImGuiSetCond_FirstUseEver);
     ImGui::Begin("Frame Editor");
 
     ImGui::DragFloat("Duration", &frame_flow->duration, 1.f, 10.f, 2000.f);

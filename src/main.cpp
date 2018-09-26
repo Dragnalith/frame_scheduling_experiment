@@ -43,21 +43,61 @@ void App::init()
 
 
     {
-        auto flow = std::make_shared<FrameFlow>("Sequencial");
+        auto flow = std::make_shared<FrameFlow>("Simple Frame");
         flow->stages.clear();
-        flow->stages.push_back(std::make_shared<FrameStage>("Simulation", 0, 1.f, 1, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Gameplay", 0, 1.f, 1, false, 0));
         flow->stages.push_back(std::make_shared<FrameStage>("Render", 1, 1.f, 1, false, 1));
-        flow->start_next_frame_stage = 1;
+        flow->start_next_frame_stage = flow->stages.size() - 1;
 
         s_App->Flows.push_back(flow);
     }
 
     {
-        auto flow = std::make_shared<FrameFlow>("Parallel");
+        auto flow = std::make_shared<FrameFlow>("Jobify");
         flow->stages.clear();
-        flow->stages.push_back(std::make_shared<FrameStage>("Simulation", 0, 1.f, 1, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Gameplay", 0, 1.f, 4, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render", 1, 1.f, 4, false, 1));
+        flow->start_next_frame_stage = flow->stages.size() - 1;
+
+        s_App->Flows.push_back(flow);
+    }
+
+    {
+        auto flow = std::make_shared<FrameFlow>("Interleave stages");
+        flow->stages.clear();
+        flow->stages.push_back(std::make_shared<FrameStage>("Gameplay", 0, 1.f, 1, false, 0));
         flow->stages.push_back(std::make_shared<FrameStage>("Render", 1, 1.f, 1, false, 1));
         flow->start_next_frame_stage = 0;
+
+        s_App->Flows.push_back(flow);
+    }
+
+    
+    {
+        auto flow = std::make_shared<FrameFlow>("Realistic Frame");
+        flow->stages.clear();
+        flow->stages.push_back(std::make_shared<FrameStage>("Gameplay1", 0, 1.f, 5, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Gameplay2", 0, 1.f, 3, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Gameplay3", 0, 1.f, 6, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render1", 1, 1.f, 8, false, 1));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render2", 1, 1.f, 4, false, 1));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render3", 1, 1.f, 6, false, 1));
+        flow->start_next_frame_stage = flow->stages.size() - 1;
+
+        s_App->Flows.push_back(flow);
+    }
+
+        
+    {
+        auto flow = std::make_shared<FrameFlow>("Realistic Frame - Interleaved");
+        flow->stages.clear();
+        flow->stages.push_back(std::make_shared<FrameStage>("Gameplay1", 0, 1.f, 5, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Gameplay2", 0, 1.f, 3, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Gameplay3", 0, 1.f, 6, false, 0));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render1", 1, 1.f, 8, true, 1));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render2", 1, 1.f, 4, true, 1));
+        flow->stages.push_back(std::make_shared<FrameStage>("Render3", 1, 1.f, 6, true, 1));
+        flow->start_next_frame_stage = 2;
 
         s_App->Flows.push_back(flow);
     }
@@ -200,7 +240,6 @@ int main(int, char**)
 
         bool yes = true;
         DrawFrameEditor(App::get().Flow);
-        DrawNodeEditor(&yes);
         //OtherNodeEditor(&yes);
         DrawVisualizer();
 

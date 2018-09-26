@@ -19,8 +19,8 @@
 struct SimulationOption
 {
     const char* Name = "Default Name";
-    int CoreNum = 4;
-    int FramePoolSize = 4;
+    int CoreNum = 6;
+    int FramePoolSize = 3;
     float Random = 0.f;
     int Seed = 0;
     bool AutoSeed = false;
