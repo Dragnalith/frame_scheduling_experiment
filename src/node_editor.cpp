@@ -118,6 +118,10 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         {
             frame_flow->start_next_frame_stage = i;
         }
+        if (frame_flow->start_next_frame_stage >= frame_flow->stages.size())
+        {
+            frame_flow->start_next_frame_stage = frame_flow->stages.size() -1;
+        }
 
         if (i > 0)
         {
@@ -151,10 +155,6 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         if (frame_flow->stages.size() > 1)
         {
             if (ImGui::Button("Delete")) {
-                if (frame_flow->start_next_frame_stage == i)
-                {
-                    frame_flow->start_next_frame_stage = 0;
-                }
                 frame_flow->stages.erase(frame_flow->stages.begin() + i);
             }
         }

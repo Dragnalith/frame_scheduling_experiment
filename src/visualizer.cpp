@@ -325,13 +325,13 @@ void DrawTimeBox(ImVec2 origin, const TimeBox& timebox)
     }
     if (timebox.type == TimeBoxType::In) {
         auto p2 = p1;
-        p2.x -= (p1.x - p0.x) * 0.3f;
-        auto newCol = GetConstrastColor(GetConstrastColor(timebox.color));
+        p2.x = p0.x + (p1.x - p0.x) * 0.1f;
+        auto newCol = g_White; //GetConstrastColor(GetConstrastColor(timebox.color));
         drawList->AddRectFilledMultiColor(p0, p2, newCol, timebox.color, timebox.color, newCol);
     } else if (timebox.type == TimeBoxType::Out) {
         auto p2 = p0;
-        p2.x += (p1.x - p0.x) * 0.3f;
-        auto newCol = GetConstrastColor(GetConstrastColor(timebox.color));
+        p2.x = p1.x - (p1.x - p0.x) * 0.1f;
+        auto newCol = g_Black; //GetConstrastColor(GetConstrastColor(timebox.color));
         drawList->AddRectFilledMultiColor(p2, p1, timebox.color, newCol, newCol, timebox.color);
     }
 
@@ -958,6 +958,12 @@ ImU32 PatternJob::color() const
 {
     auto color = g_Colors[frame_index() % array_size(g_Colors)];
 
-    float scale = (m_flow->stages[m_stage_index]->stage_tag % 2) == 0 ? 0.3f : -0.3f;
+    int test = m_flow->stages[m_stage_index]->stage_tag % 3;
+    float scale = 0.f;
+    if (test == 0) {
+        scale = 0.3f;
+    } else if (test == 1) {
+        scale = -0.3f;
+    }
     return ScaleColor(color, scale);
 }
