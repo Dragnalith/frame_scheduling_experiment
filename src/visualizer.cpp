@@ -554,7 +554,7 @@ void Simulator::draw()
                 drawlist->AddLine(p1, p2, g_Grey, 1.f);
                 std::stringstream framerateText;
                 framerateText << f.duration;
-                drawlist->AddText(p1 + ImVec2(-f.duration * 0.5f, 30.f), g_Grey, framerateText.str().c_str());
+                drawlist->AddText(p1 + ImVec2(f.duration * 0.5f * App::get().DisplayOption.Scale, 30.f), g_Grey, framerateText.str().c_str());
             }
         }
     }
@@ -586,8 +586,8 @@ void Simulator::draw()
 
     // Add an offset to scroll a bit more than the max of the timeline
     auto cursor = get_max();
-    cursor.x *= App::get().DisplayOption.Scale;
-    ImGui::SetCursorPos(cursor + ImVec2(900.f, 0.f));
+    cursor.x;
+    ImGui::SetCursorPos(cursor);
 
     ImGui::End();
 }
@@ -876,7 +876,10 @@ void DrawVisualizer()
         ImGui::Checkbox("Show Core Time", &App::get().DisplayOption.ShowCoreTime);
         ImGui::Checkbox("Show Frame Pool", &App::get().DisplayOption.ShowFramePool);
         ImGui::SliderFloat("Height", &App::get().DisplayOption.Height, 5.f, 40.f);
-        ImGui::SliderFloat("Scale", &App::get().DisplayOption.Scale, 1.f, 10.f);
+
+        float scale = App::get().DisplayOption.Scale / ConstantScale;
+        ImGui::SliderFloat("Scale", &scale, 1.f, 10.f);
+        App::get().DisplayOption.Scale = scale * ConstantScale;
     }
 
     ImGui::Separator();

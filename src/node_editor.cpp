@@ -67,8 +67,14 @@ ID::ID()
 
 FrameFlow::FrameFlow(const char* n) {
     strncpy(name, n, 200);
-    stages.push_back(std::make_shared<FrameStage>("Gameplay", 0, 1.f, 1, false, 0));
-    stages.push_back(std::make_shared<FrameStage>("Render", 1, 1.f, 1, false, 1));
+
+    stages.push_back(std::make_shared<FrameStage>("Simulate Game1", 0, 1.f, 1, false, 0));
+    stages.push_back(std::make_shared<FrameStage>("Simulate Game2", 0, 1.f, 1, false, 0));
+    stages.push_back(std::make_shared<FrameStage>("Simulate Game3", 0, 1.f, 1, false, 0));
+    stages.push_back(std::make_shared<FrameStage>("Prepare Render1", 1, 1.f, 1, false, 1));
+    stages.push_back(std::make_shared<FrameStage>("Prepare Render2", 1, 1.f, 1, false, 1));
+    stages.push_back(std::make_shared<FrameStage>("Prepare Render3", 1, 1.f, 1, false, 1));
+
     this->start_next_frame_stage = stages.size() - 1;
 }
 
@@ -86,7 +92,7 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
     ed::Begin("Frame Editor", ImVec2(0, 0));
 
     auto pos = ImVec2(0.f, 0.f);
-    const float offset = 200.f;
+    const float offset = 230.f;
 
     for (int i = 0; i < frame_flow->stages.size(); i++) 
     {
@@ -97,7 +103,7 @@ void DrawFrameEditor(std::shared_ptr<FrameFlow> frame_flow)
         ImGui::PushID(stage.id.node);
         ed::BeginNode(stage.id.node);
 
-        ImGui::PushItemWidth(100.f);
+        ImGui::PushItemWidth(130.f);
         ImGui::InputText("Name", stage.name, 101);
         ImGui::DragFloat("Weight", &stage.weight, 0.1f, 0.1f, 10.f);
         ImGui::InputInt("Split", &stage.split_count, 1, 1);

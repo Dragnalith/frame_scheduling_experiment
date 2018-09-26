@@ -43,6 +43,8 @@ struct SimulationOption
 
 struct FramePattern;
 
+constexpr float ConstantScale = 10.f;
+
 struct Preset
 {
     virtual const char* name() const = 0;
@@ -55,7 +57,7 @@ struct ControlOption
     bool Keep = true;
     bool Restart = true;
     bool AutoStep = true;
-    int MaxAutoStep = 5000;
+    int MaxAutoStep = 500;
     bool Step;
 };
 
@@ -66,7 +68,7 @@ struct DisplayOption
     bool ShowCoreTime = true;
     bool ShowFramePool = true;
     float Height = 20.f;
-    float Scale = 1.f;
+    float Scale = 1.f * ConstantScale;
 };
 
 class Job;
