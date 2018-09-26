@@ -59,7 +59,7 @@ struct ControlOption
     bool Keep = true;
     bool Restart = true;
     bool AutoStep = true;
-    int MaxAutoStep = 500;
+    int MaxAutoStep = 1000;
     bool Step;
 };
 
@@ -146,6 +146,7 @@ public:
 
     int frame_index() const { return m_frame->frame_index; }
 
+    virtual ImU32 color() const = 0;
     virtual float duration() const = 0;
     virtual bool try_exec(float time) = 0;
     virtual bool is_ready() const = 0;
@@ -257,7 +258,8 @@ class PatternJob : public Job
 {
 public:
     PatternJob(std::shared_ptr<FrameFlow> flow, int stage_index, Simulator* sim, std::shared_ptr<Frame> f, std::shared_ptr<int> counter = nullptr);
-
+    
+    virtual ImU32 color() const override;
     virtual float duration() const override;
     virtual const char* name() const override;
     virtual bool is_first() const override;

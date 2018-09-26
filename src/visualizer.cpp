@@ -380,7 +380,10 @@ bool PatternJob::is_release() const
 void PatternJob::before_schedule(float time)
 {
     if (is_first()) {
-        m_frame->start_time = time;
+        if (m_frame->start_time < 0)
+        {
+            m_frame->start_time = time;
+        }
     }
 }
 
@@ -652,7 +655,7 @@ void Simulator::step(bool autostep)
 
         j->before_schedule(latest_available_core->time);
 
-        auto timebox_color = g_Colors[j->frame_index() % array_size(g_Colors)];
+        auto timebox_color = j->color();
         auto type = TimeBoxType::Normal;
         if (j->is_first()) {
             type = TimeBoxType::In;
@@ -713,7 +716,6 @@ std::shared_ptr<Frame> Simulator::start_frame(float time)
 
     f->frame_index = m_frame_count;
     m_frame_count += 1;
-    f->start_time = time;
     return f;
 }
 
@@ -736,6 +738,7 @@ void Simulator::push_frame(std::shared_ptr<Frame> f)
     m_last_push_time = f->end_time;
 
     f->frame_index = -1;
+    f->start_time = -1.f;
     f->finished_stage.clear();
 }
 
@@ -949,4 +952,12 @@ const std::deque<std::shared_ptr<Job>>& Simulator::get_queue()
         });
     }
     return m_job_queue;
+}
+
+ImU32 PatternJob::color() const
+{
+    auto color = g_Colors[frame_index() % array_size(g_Colors)];
+
+    float scale = (m_flow->stages[m_stage_index]->stage_tag % 2) == 0 ? 0.3f : -0.3f;
+    return ScaleColor(color, scale);
 }
