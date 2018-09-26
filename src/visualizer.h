@@ -16,12 +16,16 @@
 
 #include "node_editor.h"
 
+constexpr float ConstantScale = 10.f;
+constexpr float DefaultMaxRandom = 2.f;
+
 struct SimulationOption
 {
     const char* Name = "Default Name";
     int CoreNum = 6;
     int FramePoolSize = 3;
     float Random = 0.f;
+    float MaxRandom = DefaultMaxRandom;
     int Seed = 0;
     bool AutoSeed = false;
     bool PriorityQueue = false;
@@ -42,8 +46,6 @@ struct SimulationOption
 };
 
 struct FramePattern;
-
-constexpr float ConstantScale = 10.f;
 
 struct Preset
 {

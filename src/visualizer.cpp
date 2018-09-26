@@ -476,7 +476,7 @@ Simulator::Simulator(std::shared_ptr<FrameFlow> flow, const SimulationOption& op
     , m_frame_pool_size(option.FramePoolSize)
     , m_frame_count(0)
     , m_generator(option.Seed)
-    , m_distribution((1.f - option.Random), (1.f + option.Random))
+    , m_distribution(0.0001f, 1.f)
     , m_option(option)
     , m_flow(flow)
 {
@@ -554,7 +554,7 @@ void Simulator::draw()
                 drawlist->AddLine(p1, p2, g_Grey, 1.f);
                 std::stringstream framerateText;
                 framerateText << f.duration;
-                drawlist->AddText(p1 + ImVec2(f.duration * 0.5f * App::get().DisplayOption.Scale, 30.f), g_Grey, framerateText.str().c_str());
+                drawlist->AddText(p1 + ImVec2(- f.duration * 0.5f * App::get().DisplayOption.Scale, 30.f), g_Grey, framerateText.str().c_str());
             }
         }
     }
@@ -669,7 +669,29 @@ void Simulator::step(bool autostep)
 
 float Simulator::generate()
 {
-    return m_distribution(m_generator);
+    float Min = 0.1f;
+    
+    float max = 1.f + m_option.Random * (m_option.MaxRandom - 1.f);
+    float min = 1.f - (1.f - Min) * m_option.Random;
+
+    float r = m_distribution(m_generator);
+    float A = 1.f - min;
+    float B = m_option.MaxRandom - 1.f;
+
+    float a = B / (A + B);
+    float b = A / (A + B);
+
+    float result = 1.f;
+    if (r <= a)
+    {
+        result = min + (1.f - min) * r / a;
+    }
+    else 
+    {
+        result = 1.f + (max - 1.f) * (r - a) / (1.f - a);
+    }
+
+    return result;
 }
 
 std::shared_ptr<Frame> Simulator::get_frame(int index)
@@ -835,7 +857,8 @@ void DrawVisualizer()
         ImGui::Text(App::get().SimOption.Name);
         ImGui::SliderInt("Core Number", &App::get().SimOption.CoreNum, 1, 16);
         ImGui::SliderInt("FramePool Size", &App::get().SimOption.FramePoolSize, 1, 16);
-        ImGui::SliderFloat("Random", &App::get().SimOption.Random, 0.0f, 0.9f);
+        ImGui::SliderFloat("Random", &App::get().SimOption.Random, 0.0f, 1.0f);
+        ImGui::SliderFloat("Max Increase", &App::get().SimOption.MaxRandom, 1.0f, 100.f);
         PushDisabled(!App::get().SimOption.AutoSeed);
         ImS32 step = 1;
         ImGui::InputScalar("Seed", ImGuiDataType_S32, &App::get().SimOption.Seed, &step, nullptr);
