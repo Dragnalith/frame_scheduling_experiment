@@ -102,7 +102,7 @@ struct TimeBox
         if (frame >= 0)
         {
             std::stringstream s;
-            s << frame << "-";
+            s << frame;
             frame_index = s.str();
         }
     }
