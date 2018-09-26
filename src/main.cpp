@@ -53,7 +53,7 @@ void App::init()
     }
 
     {
-        auto flow = std::make_shared<FrameFlow>("Jobify");
+        auto flow = std::make_shared<FrameFlow>("Jobification");
         flow->stages.clear();
         flow->stages.push_back(std::make_shared<FrameStage>("Gameplay", 0, 1.f, 4, false, 0));
         flow->stages.push_back(std::make_shared<FrameStage>("Render", 1, 1.f, 4, false, 1));
@@ -74,7 +74,7 @@ void App::init()
 
     
     {
-        auto flow = std::make_shared<FrameFlow>("Realistic Frame");
+        auto flow = std::make_shared<FrameFlow>("Realistic Jobification");
         flow->stages.clear();
         flow->stages.push_back(std::make_shared<FrameStage>("Gameplay1", 0, 1.f, 5, false, 0));
         flow->stages.push_back(std::make_shared<FrameStage>("Gameplay2", 0, 1.f, 3, false, 0));
@@ -89,7 +89,7 @@ void App::init()
 
         
     {
-        auto flow = std::make_shared<FrameFlow>("Realistic Frame - Interleaved");
+        auto flow = std::make_shared<FrameFlow>("Realistic Jobification - Interleaved");
         flow->stages.clear();
         flow->stages.push_back(std::make_shared<FrameStage>("Gameplay1", 0, 1.f, 5, false, 0));
         flow->stages.push_back(std::make_shared<FrameStage>("Gameplay2", 0, 1.f, 3, false, 0));
