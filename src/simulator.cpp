@@ -3,6 +3,9 @@
 #include "imgui_internal.h"
 
 #include <sstream>
+#include <algorithm>
+
+#include <assert.h>
 
 namespace
 {
@@ -112,19 +115,27 @@ void FrameSimulator::Draw(const FrameSimulator::Setting& setting)
     // Draw
     DrawCoreLine(context);
 
-    float windowMin = ImGui::GetScrollX();
+    float windowMin = ImGui::GetScrollX() - context.setting.coreOffset.x;
     int timeMin = (int)TimeBox::GpuFrameDuration * (windowMin / setting.scale);
     float windowMax = (windowMin + ImGui::GetWindowSize().x);
     int timeMax = (int)TimeBox::GpuFrameDuration * (windowMax / setting.scale);
-    
+    ImVec2 offset(-windowMin, 0.f);
+
+    int maxTime = 0;
     for (const auto& t : m_timeboxes)
     {
+        assert(t.startTime <= t.stopTime);
         if (t.startTime <= timeMax && t.stopTime >= timeMin) {
-            DrawTimeBox(context, t);
+            DrawTimeBox(context, t, offset);
         }
+        maxTime = std::max(maxTime, t.stopTime);
     }
 
     DrawCoreLabel(context);
+
+    ImVec2 endCursor = context.startCursorPosition;
+    endCursor.x = TimeBox::ToPosition(maxTime, setting.scale) + context.setting.coreOffset.x;
+    ImGui::SetCursorPos(endCursor);
 
     // End Window
     ImGui::End();
@@ -182,7 +193,7 @@ void FrameSimulator::DrawCoreLabel(const DrawContext& context)
     }
 }
 
-float FrameSimulator::DrawTimeBox(const DrawContext& context, const TimeBox& timebox)
+void FrameSimulator::DrawTimeBox(const DrawContext& context, const TimeBox& timebox, const ImVec2& offset)
 {
     ImVec2 origin;
     if (timebox.isGpuTimeBox)
@@ -201,7 +212,7 @@ float FrameSimulator::DrawTimeBox(const DrawContext& context, const TimeBox& tim
     p1.y += context.setting.lineHeight;
 
     ImU32 color = PickColor(timebox.frameIndex);
-    context.drawlist.AddRectFilled(p0, p1, color, 3.5f, ImDrawCornerFlags_All);
+    context.drawlist.AddRectFilled(p0 + offset, p1 + offset, color, 3.5f, ImDrawCornerFlags_All);
 
     ImVec2 size = p1 - p0;
     ImU32 c = GetConstrastColor(~color);
@@ -214,7 +225,5 @@ float FrameSimulator::DrawTimeBox(const DrawContext& context, const TimeBox& tim
     ImVec2 textFrameSize = ImGui::CalcTextSize(name);
     ImVec2 offsetFrame = (size - textFrameSize) * 0.5f;
     offsetFrame.x = 2.f;
-    context.drawlist.AddText(p0 + offsetFrame, c, name);
-
-    return p1.x;
+    context.drawlist.AddText(p0 + offsetFrame + offset, c, name);
 }

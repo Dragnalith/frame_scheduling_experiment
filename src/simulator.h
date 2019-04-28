@@ -24,6 +24,9 @@ private:
     struct TimeBox
     {
         static constexpr int GpuFrameDuration = 10000;
+        static inline float ToPosition(int time, float scale) {
+            return (float)time / GpuFrameDuration * scale;
+        }
 
         int startTime;
         int stopTime;
@@ -34,11 +37,11 @@ private:
 
         inline float StartPosition(float scale) const
         {
-            return (float)startTime / GpuFrameDuration * scale;
+            return ToPosition(startTime, scale);
         }
         inline float StopPosition(float scale) const
         {
-            return (float)stopTime / GpuFrameDuration * scale;
+            return ToPosition(stopTime, scale);
         }
     };
     struct DrawContext
@@ -65,8 +68,8 @@ private:
     void DrawCoreLine(const DrawContext& context);
     void DrawCoreLabel(const DrawContext& context);
 
-    // Return the leftest position
-    float DrawTimeBox(const DrawContext& context, const TimeBox& timebox);
+    // Return the bottom-leftest position
+    void DrawTimeBox(const DrawContext& context, const TimeBox& timebox, const ImVec2& offset);
 
 private:
     std::vector<TimeBox> m_timeboxes;
