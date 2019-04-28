@@ -10,6 +10,8 @@ list(APPEND MAIN_APP_SOURCES
         visualizer.cpp
         node_editor.cpp
         node_editor.h
+        simulator.h
+        simulator.cpp
         app.h
         )
 

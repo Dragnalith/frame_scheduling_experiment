@@ -9,6 +9,7 @@
 #include "imgui_impl_opengl3.h"
 #include "NodeEditor.h"
 #include "node_editor.h"
+#include "simulator.h"
 #include <stdio.h>
 //#include <GL/gl3w.h>    // This example is using gl3w to access OpenGL functions. You may freely use any other OpenGL loader such as: glew, glad, glLoadGen, etc.
 //#include <glew.h>
@@ -203,6 +204,9 @@ int main(int, char**)
 
     App::init();
 
+    FrameSimulator frameSimulator;
+    FrameSimulator::Setting frameSimulatorSetting;
+
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
@@ -248,6 +252,9 @@ int main(int, char**)
         DrawFrameEditor(App::get().Flow);
         //OtherNodeEditor(&yes);
         DrawVisualizer();
+
+        frameSimulator.DrawOptions(frameSimulatorSetting);
+        frameSimulator.Draw(frameSimulatorSetting);
 
         // 1. Show a simple window.
         // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets automatically appears in a window called "Debug".
