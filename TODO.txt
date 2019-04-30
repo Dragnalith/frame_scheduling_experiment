@@ -1,3 +1,13 @@
+# New Simulator
+* Display latency
+* Display framerate
+* Display stable frame
+* Look for pattern if frame is not stable
+* Enable/Disable Vsync
+* Modify Simulation as ratio of GPU time, or ratio of CPU time
+* Stabize scrolling when changing frame timing
+=======================================================
+# ARCHIVE
 * Create a frame looking like naughting: 2 stages, synchronized,
 
 # Visualizer

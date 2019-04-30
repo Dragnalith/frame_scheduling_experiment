@@ -254,6 +254,7 @@ int main(int, char**)
         DrawVisualizer();
 
         frameSimulator.DrawOptions(frameSimulatorSetting);
+        frameSimulator.Simulate(frameSimulatorSetting);
         frameSimulator.Draw(frameSimulatorSetting);
 
         // 1. Show a simple window.
