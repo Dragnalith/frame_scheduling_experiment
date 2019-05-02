@@ -13,50 +13,59 @@ namespace
 {
 
 
-template <class T, int N>
-constexpr int array_size(T(&)[N]) { return N; }
+    template <class T, int N>
+    constexpr int array_size(T(&)[N]) { return N; }
 
-ImU32 g_White = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 1.f, 1.0f));
-ImU32 g_Green = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
-ImU32 g_Red = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
-ImU32 g_Blue = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 1.0f, 1.0f));
-ImU32 g_Yellow = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
-ImU32 g_Cyan = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 1.0f, 1.0f, 1.0f));
-ImU32 g_Magenta = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 0.0f, 1.0f, 1.0f));
-ImU32 g_Grey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-ImU32 g_DarkGrey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
-ImU32 g_Black = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
+    ImU32 g_White = ImGui::ColorConvertFloat4ToU32(ImVec4(1.f, 1.f, 1.f, 1.0f));
+    ImU32 g_Green = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 1.0f, 0.0f, 1.0f));
+    ImU32 g_Red = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+    ImU32 g_Blue = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 1.0f, 1.0f));
+    ImU32 g_Yellow = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 1.0f, 0.0f, 1.0f));
+    ImU32 g_Cyan = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 1.0f, 1.0f, 1.0f));
+    ImU32 g_Magenta = ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 0.0f, 1.0f, 1.0f));
+    ImU32 g_Grey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+    ImU32 g_DarkGrey = ImGui::ColorConvertFloat4ToU32(ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+    ImU32 g_Black = ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-ImU32 g_Colors[] = {
-    g_Grey,
-    g_Green,
-    g_Red,
-    g_Blue,
-    g_DarkGrey,
-    g_Yellow,
-    g_Cyan,
-    g_Magenta
-};
+    ImU32 g_Colors[] = {
+        g_Grey,
+        g_Green,
+        g_Red,
+        g_Blue,
+        g_DarkGrey,
+        g_Yellow,
+        g_Cyan,
+        g_Magenta
+    };
 
-ImU32 PickColor(int index)
-{
-    return g_Colors[index % array_size(g_Colors)];
+    ImU32 PickColor(int index)
+    {
+        return g_Colors[index % array_size(g_Colors)];
+    }
+
+    ImU32 GetConstrastColor(ImU32 color)
+    {
+        int a0 = (color & 0x000000ff) >= 128 ? 1 : 0;
+        int a1 = ((color >> 8) & 0x000000ff) >= 128 ? 1 : 0;
+        int a2 = ((color >> 16) & 0x000000ff) >= 128 ? 1 : 0;
+
+        if (a0 + a1 + a2 < 2) {
+            return g_Black;
+        }
+        else {
+            return g_White;
+        }
+    }
+
 }
 
-ImU32 GetConstrastColor(ImU32 color)
+namespace
 {
-    int a0 = (color & 0x000000ff) >= 128 ? 1 : 0;
-    int a1 = ((color >> 8) & 0x000000ff) >= 128 ? 1 : 0;
-    int a2 = ((color >> 16) & 0x000000ff) >= 128 ? 1 : 0;
-
-    if (a0 + a1 + a2 < 2) {
-        return g_Black;
+    void Round100(float& f)
+    {
+        float r = static_cast<float>(static_cast<int>(f * 100.f)) / 100.f;
+        f = r;
     }
-    else {
-        return g_White;
-    }
-}
-
 }
 
 void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
@@ -65,13 +74,61 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
     ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
     ImGui::Begin("Simulation Options");
 
-    if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::SliderInt("Core Number", &setting.coreCount, 1, 16);
-        setting.scaleChanged = ImGui::SliderFloat("GPU Frame Size", &setting.scale, 20.0f, 350.0f);
-        ImGui::SliderFloat("Cpu Ratio", &setting.CpuRatio, 0.01f, 3.0f);
-        ImGui::SliderFloat("Simulation Ratio", &setting.CpuSimRatio, 0.f, 1.0f);
+    const float f32_0 = 0.f;
+    const float f32_1 = 1.0f;
+    const float f32_2 = 2.0f;
+    const float f32_3 = 3.0f;
+    const float f32_4 = 4.0f;
+    const int s32_1 = 1;
+    if (ImGui::CollapsingHeader("Parameters", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::SliderInt("Core Count", &setting.coreCount, 1, 16);
         ImGui::SliderInt("Frame Count", &setting.frameCount, 1, 16);
+
+        setting.scaleChanged = ImGui::SliderFloat("Vsync Period", &setting.scale, 20.0f, 350.0f);
+
+        bool cpuDurationChanged = ImGui::DragScalar("All Cpu Duration", ImGuiDataType_Float, &setting.CpuDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+        ImGui::SameLine();
+        if (ImGui::Button("Reset"))
+        {
+            cpuDurationChanged = true;
+            setting.CpuDuration = 1.0f;
+        }
+        if (cpuDurationChanged) {
+            if (setting.CpuDuration > 0.f)
+            {
+                setting.CpuSimDuration = setting.CpuSimRatio * setting.CpuDuration;
+            }
+            else {
+                setting.CpuSimDuration = 0.f;
+            }
+        }
+        bool cpuSimRatioChanged = ImGui::DragScalar("CpuSim Ratio", ImGuiDataType_Float, &setting.CpuSimRatio, 0.01f, &f32_0, &f32_1, "%f", 1.0f);
+        ImGui::SameLine();
+        if (ImGui::Button("Reset1"))
+        {
+            cpuSimRatioChanged = true;
+            setting.CpuSimRatio = 0.5f;
+        }
+        if (cpuSimRatioChanged) {
+            setting.CpuSimDuration = setting.CpuSimRatio * setting.CpuDuration;
+        }
+        bool cpuSimDurationChanged = ImGui::DragScalar("CpuSim Duration", ImGuiDataType_Float, &setting.CpuSimDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+        ImGui::SameLine();
+        if (ImGui::Button("Reset2"))
+        {
+            cpuSimDurationChanged = true;
+            setting.CpuSimDuration = 0.5f;
+        }
+        if (cpuSimDurationChanged)
+        {
+            setting.CpuDuration = setting.CpuSimDuration + (1.0f - setting.CpuSimRatio) * setting.CpuDuration;
+            setting.CpuSimRatio = setting.CpuSimDuration / setting.CpuDuration;
+        }
     }
+
+    Round100(setting.CpuDuration);
+    Round100(setting.CpuSimRatio);
+    Round100(setting.CpuSimDuration);
 
     ImGui::End();
 }

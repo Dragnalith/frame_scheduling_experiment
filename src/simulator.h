@@ -20,20 +20,21 @@ struct FrameSetting
     float margin = 10.f;
     ImVec2 coreOffset = ImVec2(50.f, 0.f);
 
-    float CpuRatio = 1.0f;
+    float CpuDuration = 1.0f;
     float CpuSimRatio = 0.5f;
+    float CpuSimDuration = 0.5f;
     int frameCount = 3;
     int maxFrameIndex = 100;
 
     int inline CpuSimTime() const {
-        return static_cast<int>(CpuSimRatio * CpuRatio * GpuFrameDuration);
+        return static_cast<int>(CpuSimRatio * CpuDuration * GpuFrameDuration);
     }
     int inline CpuPrepTime() const {
-        return static_cast<int>((1.0f - CpuSimRatio) * CpuRatio * GpuFrameDuration);
+        return static_cast<int>((1.0f - CpuSimRatio) * CpuDuration * GpuFrameDuration);
     }
 
     int inline ToTime(float position) const {
-        return (position - coreOffset.x) * GpuFrameDuration / scale;
+        return static_cast<int>((position - coreOffset.x) * GpuFrameDuration / scale);
     }
 
     float inline ToPosition(int time) const {
