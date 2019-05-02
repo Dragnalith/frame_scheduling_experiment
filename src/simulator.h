@@ -21,6 +21,8 @@ struct FrameSetting
     float margin = 10.f;
     ImVec2 coreOffset = ImVec2(50.f, 0.f);
 
+    bool vsyncEnabled = false;
+    float GpuDuration = 1.0f;
     float CpuDuration = 1.0f;
     float CpuSimRatio = 0.5f;
     float CpuSimDuration = 0.5f;
@@ -33,7 +35,9 @@ struct FrameSetting
     int inline CpuPrepTime() const {
         return static_cast<int>((1.0f - CpuSimRatio) * CpuDuration * GpuFrameDuration);
     }
-
+    int inline GpuTime() const {
+        return static_cast<int>(GpuDuration * GpuFrameDuration);
+    }
     int inline ToTime(float position) const {
         return static_cast<int>((position - coreOffset.x) * GpuFrameDuration / scale);
     }
@@ -69,10 +73,11 @@ public:
         int CpuPrepStartTime = -1;
         int CpuPrepCoreIndex = -1;
         int GpuStartTime = -1;
+        int GpuStopTime = -1;
         int GpuPresentTime = -1;
 
         inline bool IsDone() const { return CpuSimStartTime >= 0 && CpuPrepStartTime >= 0 && GpuStartTime >= 0 && GpuPresentTime >= 0
-            && CpuSimCoreIndex >= 0 && CpuPrepCoreIndex >= 0; }
+            && CpuSimCoreIndex >= 0 && CpuPrepCoreIndex >= 0 && GpuStopTime >= 0; }
 
         inline int Latency() const {
             return GpuPresentTime - CpuSimStartTime;

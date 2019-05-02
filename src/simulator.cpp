@@ -86,6 +86,7 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
 
         setting.scaleChanged = ImGui::SliderFloat("Vsync Period", &setting.scale, 20.0f, 350.0f);
 
+        ImGui::DragScalar("Gpu Duration", ImGuiDataType_Float, &setting.GpuDuration, 0.01f, &f32_0, &f32_2, "%f", 1.0f);
         bool cpuDurationChanged = ImGui::DragScalar("All Cpu Duration", ImGuiDataType_Float, &setting.CpuDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
         ImGui::SameLine();
         if (ImGui::Button("Reset"))
@@ -127,6 +128,7 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
             setting.CpuSimRatio = setting.CpuSimDuration / setting.CpuDuration;
             std::cout << "old: " << old << ", new: " << setting.CpuSimRatio << '\n';
         }
+        ImGui::Checkbox("Vsync Enabled", &setting.vsyncEnabled);
     }
 
     ImGui::End();
@@ -158,7 +160,17 @@ public:
         assert(frame.CpuPrepStartTime >= 0);
         int cpuPrepEndTime = frame.CpuPrepStartTime + context.setting.CpuPrepTime();
         frame.GpuStartTime = std::max(cpuPrepEndTime, previousGpuPresentTime);
-        frame.GpuPresentTime = frame.GpuStartTime + FrameSetting::GpuFrameDuration;
+        frame.GpuStopTime = frame.GpuStartTime + context.setting.GpuTime();
+        if (context.setting.vsyncEnabled)
+        {
+            frame.GpuPresentTime = (((frame.GpuStopTime - 1) / context.setting.GpuFrameDuration) + 1 )* context.setting.GpuFrameDuration;
+        }
+        else
+        {
+            frame.GpuPresentTime = frame.GpuStopTime;
+        }
+        DRGN_ASSERT(frame.GpuStopTime <= frame.GpuPresentTime);
+
     }
 };
 class CpuPrepJob : public FrameJob
@@ -329,15 +341,25 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         TimeBox gpu;
         gpu.frameIndex = i;
         gpu.startTime = frame.GpuStartTime;
-        gpu.stopTime = gpu.startTime + FrameSetting::GpuFrameDuration;
+        gpu.stopTime = frame.GpuStopTime;
         gpu.isGpuTimeBox = true;
-        gpu.name = "GPU";
+        gpu.name = "Render";
+        TimeBox gpuPresent;
+        gpuPresent.frameIndex = i;
+        gpuPresent.startTime = frame.GpuStopTime;
+        gpuPresent.stopTime = frame.GpuPresentTime;
+        gpuPresent.isGpuTimeBox = true;
+        gpuPresent.name = "Present";
         m_timeboxes.push_back(cpuSim);
         if (cpuPrep.stopTime > cpuPrep.startTime)
         {
             m_timeboxes.push_back(cpuPrep);
         }
         m_timeboxes.push_back(gpu);
+        if (gpuPresent.stopTime > gpuPresent.startTime)
+        {
+            m_timeboxes.push_back(gpuPresent);
+        }
 
         LatencyBox l;
         l.frameIndex = i;
@@ -520,7 +542,8 @@ void FrameSimulator::DrawTimeBox(const DrawContext& context, const TimeBox& time
     ImVec2 textFrameSize = ImGui::CalcTextSize(name);
     ImVec2 offsetFrame = (size - textFrameSize) * 0.5f;
     offsetFrame.x = 2.f;
-    context.drawlist.AddText(p0 + offsetFrame + offset, c, name);
+    ImVec4 clip(p0.x + offset.x, p0.y + offset.y, p1.x + offset.x, p1.y + offset.y);
+    context.drawlist.AddText(NULL, 0.0f, p0 + offsetFrame + offset, c, name, NULL, 0.f, &clip);
 }
 
 void FrameSimulator::DrawLatencyBox(const DrawContext& context, const LatencyBox& box, const ImVec2& offset)
@@ -570,5 +593,8 @@ void FrameSimulator::DrawFrameRate(const DrawContext& context, const FrameRate& 
     context.drawlist.AddLine(p0 + offset, p1 + offset, color, 1.f);
     std::stringstream framerateText;
     framerateText << '[' << fr.frameIndex << "] " << duration;
-    context.drawlist.AddText(p0 + ImVec2(10.f, 5.f) + offset, g_Grey, framerateText.str().c_str());
+    std::string text_str = framerateText.str();
+    const char* text = text_str.c_str();
+    ImVec2 textFrameSize = ImGui::CalcTextSize(text);
+    context.drawlist.AddText(p0 + ImVec2(-textFrameSize.x - 5.f, 0.f) + offset, g_Grey, text);
 }

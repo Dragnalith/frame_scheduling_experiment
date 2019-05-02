@@ -1,7 +1,5 @@
 # New Simulator
 * Change simulation parameter: number simulated frame, time resolution
-* Enable/Disable Vsync
-    * Split GPU in two: Rendering, Wait Presentation
 * Lock scrolling on stable frame
 * Test: computing of deltatime
 * Test: What happen if one frame stall
