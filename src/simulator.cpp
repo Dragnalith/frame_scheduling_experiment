@@ -284,6 +284,26 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         assert(doBreak);
     }
 
+    int stableFrameIndex = 0;
+    for (int i = 1; i < (int)context.frames.size(); i++)
+    {
+        const SimulationContext::Frame& frame = context.frames[i];
+        const SimulationContext::Frame& prev = context.frames[i - 1];
+
+        int fr = frame.GpuPresentTime - prev.GpuPresentTime;
+        int prevFr = fr;
+        if (i > 1) {
+            const SimulationContext::Frame& prev2 = context.frames[i-2];
+            prevFr = prev.GpuPresentTime - prev2.GpuPresentTime;
+        }
+        if (!(frame.Latency() == prev.Latency()
+            && frame.RelativePrepTime() == prev.RelativePrepTime()
+            && frame.RelativeGpuTime() == prev.RelativeGpuTime()
+            && fr == prevFr))
+        {
+            stableFrameIndex = i;
+        }
+    }
     // Dummy simulation
     m_timeboxes.clear();
     m_latencyBoxes.clear();
@@ -328,6 +348,8 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         FrameRate fr;
         fr.frameIndex = i;
         fr.time = frame.GpuPresentTime;
+        fr.firstStable = i == stableFrameIndex;
+        fr.stable = i >= stableFrameIndex;
         if (i > 0)
         {
             fr.duration = frame.GpuPresentTime - context.frames[i - 1].GpuPresentTime;
@@ -539,8 +561,13 @@ void FrameSimulator::DrawFrameRate(const DrawContext& context, const FrameRate& 
     p1.x = p0.x;
     p1.y += context.windowSize.y;
 
+    ImU32 color = g_DarkGrey;
+    if (fr.stable)
+    {
+        color = g_Red;
+    }
     float duration = (float(fr.duration)) / context.setting.GpuFrameDuration;
-    context.drawlist.AddLine(p0 + offset, p1 + offset, g_DarkGrey, 1.f);
+    context.drawlist.AddLine(p0 + offset, p1 + offset, color, 1.f);
     std::stringstream framerateText;
     framerateText << '[' << fr.frameIndex << "] " << duration;
     context.drawlist.AddText(p0 + ImVec2(10.f, 5.f) + offset, g_Grey, framerateText.str().c_str());

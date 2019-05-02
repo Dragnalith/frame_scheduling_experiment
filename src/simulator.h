@@ -73,6 +73,18 @@ public:
 
         inline bool IsDone() const { return CpuSimStartTime >= 0 && CpuPrepStartTime >= 0 && GpuStartTime >= 0 && GpuPresentTime >= 0
             && CpuSimCoreIndex >= 0 && CpuPrepCoreIndex >= 0; }
+
+        inline int Latency() const {
+            return GpuPresentTime - CpuSimStartTime;
+        }
+
+        inline int RelativePrepTime() const {
+            return CpuPrepStartTime - CpuSimStartTime;
+        }
+
+        inline int RelativeGpuTime() const {
+            return GpuStartTime - CpuSimStartTime;
+        }
     };
 
     struct SchedulingResult
@@ -125,6 +137,7 @@ private:
         int time = -1;
         int duration = -1;
         bool firstStable = false;
+        bool stable = false;
         bool missed = false;
     };
 
