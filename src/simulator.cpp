@@ -65,7 +65,7 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
 
     if (ImGui::CollapsingHeader("Simulation", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::SliderInt("Core Number", &setting.coreCount, 1, 16);
-        ImGui::SliderFloat("GPU Frame Size", &setting.scale, 150.0f, 1500.0f);
+        setting.scaleChanged = ImGui::SliderFloat("GPU Frame Size", &setting.scale, 150.0f, 1500.0f);
         ImGui::SliderFloat("Cpu Ratio", &setting.CpuRatio, 0.01f, 3.0f);
         ImGui::SliderFloat("Simulation Ratio", &setting.CpuSimRatio, 0.f, 1.0f);
         ImGui::SliderInt("Frame Count", &setting.frameCount, 1, 16);
@@ -282,11 +282,9 @@ void FrameSimulator::Draw(const FrameSimulator::Setting& setting)
     // Draw
     DrawCoreLine(context);
 
-    float windowMin = ImGui::GetScrollX() - context.setting.coreOffset.x;
-    int timeMin = static_cast<int>(TimeBox::GpuFrameDuration * (windowMin / setting.scale));
-    float windowMax = (windowMin + ImGui::GetWindowSize().x);
-    int timeMax = static_cast<int>(TimeBox::GpuFrameDuration * (windowMax / setting.scale));
-    ImVec2 offset(-windowMin, 0.f);
+    ImVec2 offset(-ImGui::GetScrollX(), 0.f);
+    int timeMin = setting.ToPosition(ImGui::GetScrollX());
+    int timeMax = setting.ToPosition(ImGui::GetScrollX() + ImGui::GetWindowSize().x);
 
     int maxTime = 0;
     for (const auto& t : m_timeboxes)
@@ -301,7 +299,7 @@ void FrameSimulator::Draw(const FrameSimulator::Setting& setting)
     DrawCoreLabel(context);
 
     ImVec2 endCursor = context.startCursorPosition;
-    endCursor.x = TimeBox::ToPosition(maxTime, setting.scale) + context.setting.coreOffset.x;
+    endCursor.x = setting.ToPosition(maxTime);
     ImGui::SetCursorPos(endCursor);
 
     // End Window
@@ -374,8 +372,8 @@ void FrameSimulator::DrawTimeBox(const DrawContext& context, const TimeBox& time
 
     ImVec2 p0 = origin;
     ImVec2 p1 = origin;
-    p0.x += timebox.StartPosition(context.setting.scale);
-    p1.x += timebox.StopPosition(context.setting.scale);
+    p0.x += context.setting.ToPosition(timebox.startTime);
+    p1.x += context.setting.ToPosition(timebox.stopTime);
     p1.y += context.setting.lineHeight;
 
     ImU32 color = PickColor(timebox.frameIndex);

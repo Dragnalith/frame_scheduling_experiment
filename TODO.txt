@@ -4,6 +4,7 @@
 * Display stable frame
 * Look for pattern if frame is not stable
 * Enable/Disable Vsync
+    * Split GPU in two: Rendering, Wait Presentation
 * Modify Simulation as ratio of GPU time, or ratio of CPU time
 * Stabize scrolling when changing frame timing
 =======================================================

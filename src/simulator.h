@@ -14,6 +14,7 @@ struct FrameSetting
     static constexpr int GpuFrameDuration = 100;
 
     float scale = 150.0f;
+    bool scaleChanged = false;
     int coreCount = 8;
     float lineHeight = 20.f;
     float margin = 10.f;
@@ -29,6 +30,14 @@ struct FrameSetting
     }
     int inline CpuPrepTime() const {
         return static_cast<int>((1.0f - CpuSimRatio) * CpuRatio * GpuFrameDuration);
+    }
+
+    int inline ToTime(float position) const {
+        return (position - coreOffset.x) * GpuFrameDuration / scale;
+    }
+
+    float inline ToPosition(int time) const {
+        return (scale * time) / GpuFrameDuration + coreOffset.x;
     }
 };
 
@@ -92,9 +101,6 @@ private:
     struct TimeBox
     {
         static constexpr int GpuFrameDuration = FrameSetting::GpuFrameDuration;
-        static inline float ToPosition(int time, float scale) {
-            return (float)time / GpuFrameDuration * scale;
-        }
 
         int startTime;
         int stopTime;
@@ -102,15 +108,6 @@ private:
         int frameIndex;
         bool isGpuTimeBox;
         int coreIndex;
-
-        inline float StartPosition(float scale) const
-        {
-            return ToPosition(startTime, scale);
-        }
-        inline float StopPosition(float scale) const
-        {
-            return ToPosition(stopTime, scale);
-        }
     };
 
     struct DrawContext
@@ -142,4 +139,5 @@ private:
 
 private:
     std::vector<TimeBox> m_timeboxes;
+    float m_previousScrollX = -1.0;
 };
