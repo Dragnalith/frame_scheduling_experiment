@@ -121,14 +121,13 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
         }
         if (cpuSimDurationChanged)
         {
-            setting.CpuDuration = setting.CpuSimDuration + (1.0f - setting.CpuSimRatio) * setting.CpuDuration;
+            float old = setting.CpuSimRatio;
+            float oldPrepDuration = (1.0f - setting.CpuSimRatio) * setting.CpuDuration;
+            setting.CpuDuration = setting.CpuSimDuration + oldPrepDuration;
             setting.CpuSimRatio = setting.CpuSimDuration / setting.CpuDuration;
+            std::cout << "old: " << old << ", new: " << setting.CpuSimRatio << '\n';
         }
     }
-
-    Round100(setting.CpuDuration);
-    Round100(setting.CpuSimRatio);
-    Round100(setting.CpuSimDuration);
 
     ImGui::End();
 }
