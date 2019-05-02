@@ -1,0 +1,1 @@
+If CpuSim > Vsync period the game is never stable
