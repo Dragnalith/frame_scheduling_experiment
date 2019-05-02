@@ -11,7 +11,7 @@ struct SimulationContext;
 
 struct FrameSetting
 {
-    static constexpr int GpuFrameDuration = 100;
+    static constexpr int GpuFrameDuration = 10000;
 
     float scale = 150.0f;
     bool scaleChanged = false;
@@ -139,5 +139,5 @@ private:
 
 private:
     std::vector<TimeBox> m_timeboxes;
-    float m_previousScrollX = -1.0;
+    int m_previousTimeMin = -1;
 };

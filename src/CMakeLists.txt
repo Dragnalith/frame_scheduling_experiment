@@ -13,6 +13,8 @@ list(APPEND MAIN_APP_SOURCES
         simulator.h
         simulator.cpp
         app.h
+        debug.h
+        debug.cpp
         )
 
 set(MAIN_APP_LIBRARIES
