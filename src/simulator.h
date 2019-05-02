@@ -17,6 +17,7 @@ struct FrameSetting
     bool scaleChanged = false;
     int coreCount = 8;
     float lineHeight = 20.f;
+    float latencyLineHeight = 15.f;
     float margin = 10.f;
     ImVec2 coreOffset = ImVec2(50.f, 0.f);
 
@@ -111,6 +112,13 @@ private:
         int coreIndex;
     };
 
+    struct LatencyBox
+    {
+        int frameIndex = -1;
+        int startTime = -1;
+        int stopTime = -1;
+    };
+
     struct DrawContext
     {
         DrawContext(const Setting& set, ImDrawList& dl, const ImVec2& cursor, const ImVec2& winPos, const ImVec2& winSize)
@@ -130,6 +138,7 @@ private:
 
         const ImVec2 gpuLineOrigin { startCursorPosition + windowPosition};
         const ImVec2 cpuLineOrigin { gpuLineOrigin + ImVec2(0.f, setting.margin + setting.lineHeight)};
+        const ImVec2 latencyOrigin{ cpuLineOrigin + ImVec2(0.f, setting.margin + setting.coreCount * setting.lineHeight) };
     };
 
     void DrawCoreLine(const DrawContext& context);
@@ -137,8 +146,10 @@ private:
 
     // Return the bottom-leftest position
     void DrawTimeBox(const DrawContext& context, const TimeBox& timebox, const ImVec2& offset);
+    void DrawLatencyBox(const DrawContext& context, const LatencyBox& timebox, const ImVec2& offset);
 
 private:
     std::vector<TimeBox> m_timeboxes;
+    std::vector<LatencyBox> m_latencyBoxes;
     int m_previousTimeMin = -1;
 };

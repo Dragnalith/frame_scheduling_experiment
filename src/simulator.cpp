@@ -287,7 +287,7 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
 
     // Dummy simulation
     m_timeboxes.clear();
-
+    m_latencyBoxes.clear();
     for (int i = 0; i < (int) context.frames.size(); i++)
     {
         const SimulationContext::Frame& frame = context.frames[i];
@@ -318,6 +318,12 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
             m_timeboxes.push_back(cpuPrep);
         }
         m_timeboxes.push_back(gpu);
+
+        LatencyBox l;
+        l.frameIndex = i;
+        l.startTime = frame.CpuSimStartTime;
+        l.stopTime = frame.GpuPresentTime;
+        m_latencyBoxes.push_back(l);
     }
 }
 
@@ -363,7 +369,7 @@ void FrameSimulator::Draw(const FrameSimulator::Setting& setting)
     int maxTime = 0;
     for (const auto& t : m_timeboxes)
     {
-        assert(t.startTime <= t.stopTime);
+        DRGN_ASSERT(t.startTime <= t.stopTime);
         if (t.startTime <= timeMax && t.stopTime >= timeMin) {
             DrawTimeBox(context, t, offset);
         }
@@ -371,6 +377,15 @@ void FrameSimulator::Draw(const FrameSimulator::Setting& setting)
     }
 
     DrawCoreLabel(context);
+
+    for (const auto& t : m_latencyBoxes)
+    {
+        DRGN_ASSERT(t.startTime <= t.stopTime);
+        if (t.startTime <= timeMax && t.stopTime >= timeMin) {
+            DrawLatencyBox(context, t, offset);
+        }
+        maxTime = std::max(maxTime, t.stopTime);
+    }
 
     ImVec2 endCursor = context.startCursorPosition;
     endCursor.x = setting.ToPosition(maxTime);
@@ -458,6 +473,34 @@ void FrameSimulator::DrawTimeBox(const DrawContext& context, const TimeBox& time
 
     std::stringstream s;
     s << timebox.name << '(' << timebox.frameIndex << ')';
+    std::string str = s.str();
+    const char* name = str.c_str();
+
+    ImVec2 textFrameSize = ImGui::CalcTextSize(name);
+    ImVec2 offsetFrame = (size - textFrameSize) * 0.5f;
+    offsetFrame.x = 2.f;
+    context.drawlist.AddText(p0 + offsetFrame + offset, c, name);
+}
+
+void FrameSimulator::DrawLatencyBox(const DrawContext& context, const LatencyBox& box, const ImVec2& offset)
+{
+    ImVec2 origin = context.latencyOrigin + ImVec2(0.f, (box.frameIndex % context.setting.frameCount)* context.setting.latencyLineHeight);
+
+    ImVec2 p0 = origin;
+    ImVec2 p1 = origin;
+    p0.x += context.setting.ToPosition(box.startTime);
+    p1.x += context.setting.ToPosition(box.stopTime);
+    p1.y += context.setting.latencyLineHeight;
+
+    ImU32 color = PickColor(box.frameIndex);
+    context.drawlist.AddRectFilled(p0 + offset, p1 + offset, color, 6.f, ImDrawCornerFlags_All);
+
+    ImVec2 size = p1 - p0;
+    ImU32 c = GetConstrastColor(~color);
+
+    float latency = (float(box.stopTime - box.startTime)) / context.setting.GpuFrameDuration;
+    std::stringstream s;
+    s << latency;
     std::string str = s.str();
     const char* name = str.c_str();
 

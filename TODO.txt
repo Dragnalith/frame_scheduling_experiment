@@ -1,12 +1,11 @@
 # New Simulator
-* Display latency
 * Display framerate
 * Display stable frame
+* Display average and summary of information
 * Look for pattern if frame is not stable
 * Enable/Disable Vsync
     * Split GPU in two: Rendering, Wait Presentation
 * Lock scrolling on stable frame
-
 =======================================================
 # ARCHIVE
 * Create a frame looking like naughting: 2 stages, synchronized,
