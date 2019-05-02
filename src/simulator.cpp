@@ -79,12 +79,12 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
     const float f32_2 = 2.0f;
     const float f32_3 = 3.0f;
     const float f32_4 = 4.0f;
+    const int s32_0 = 0;
+    const int s32_100000 = 100000;
     const int s32_1 = 1;
     if (ImGui::CollapsingHeader("Parameters", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::SliderInt("Core Count", &setting.coreCount, 1, 16);
         ImGui::SliderInt("Frame Count", &setting.frameCount, 1, 16);
-
-        setting.scaleChanged = ImGui::SliderFloat("Vsync Period", &setting.scale, 20.0f, 350.0f);
 
         ImGui::DragScalar("Gpu Duration", ImGuiDataType_Float, &setting.GpuDuration, 0.01f, &f32_0, &f32_2, "%f", 1.0f);
         bool cpuDurationChanged = ImGui::DragScalar("All Cpu Duration", ImGuiDataType_Float, &setting.CpuDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
@@ -128,9 +128,14 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
             setting.CpuSimRatio = setting.CpuSimDuration / setting.CpuDuration;
             std::cout << "old: " << old << ", new: " << setting.CpuSimRatio << '\n';
         }
+
+        ImGui::DragScalar("Time Resolution", ImGuiDataType_S32, &setting.resolution, 1, &s32_0, &s32_100000);
         ImGui::Checkbox("Vsync Enabled", &setting.vsyncEnabled);
     }
-
+    if (ImGui::CollapsingHeader("Parameters", ImGuiTreeNodeFlags_DefaultOpen)) {
+        setting.scaleChanged = ImGui::SliderFloat("Zoom (Vsync Period)", &setting.scale, 20.0f, 350.0f);
+        ImGui::DragScalar("Frame Simulated Count", ImGuiDataType_S32, &setting.maxFrameIndex, 1, &s32_0, &s32_100000);
+    }
     ImGui::End();
 }
 
@@ -163,7 +168,7 @@ public:
         frame.GpuStopTime = frame.GpuStartTime + context.setting.GpuTime();
         if (context.setting.vsyncEnabled)
         {
-            frame.GpuPresentTime = (((frame.GpuStopTime - 1) / context.setting.GpuFrameDuration) + 1 )* context.setting.GpuFrameDuration;
+            frame.GpuPresentTime = (((frame.GpuStopTime - 1) / context.setting.resolution) + 1 )* context.setting.resolution;
         }
         else
         {
@@ -562,7 +567,7 @@ void FrameSimulator::DrawLatencyBox(const DrawContext& context, const LatencyBox
     ImVec2 size = p1 - p0;
     ImU32 c = GetConstrastColor(~color);
 
-    float latency = (float(box.stopTime - box.startTime)) / context.setting.GpuFrameDuration;
+    float latency = (float(box.stopTime - box.startTime)) / context.setting.resolution;
     std::stringstream s;
     s << latency;
     std::string str = s.str();
@@ -589,7 +594,7 @@ void FrameSimulator::DrawFrameRate(const DrawContext& context, const FrameRate& 
     {
         color = g_Red;
     }
-    float duration = (float(fr.duration)) / context.setting.GpuFrameDuration;
+    float duration = (float(fr.duration)) / context.setting.resolution;
     context.drawlist.AddLine(p0 + offset, p1 + offset, color, 1.f);
     std::stringstream framerateText;
     framerateText << '[' << fr.frameIndex << "] " << duration;

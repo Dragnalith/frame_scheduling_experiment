@@ -1,7 +1,5 @@
 # New Simulator
-* Change simulation parameter: number simulated frame, time resolution
-* Lock scrolling on stable frame
-* Test: computing of deltatime
+* Test: computing of deltatime and see what happen if one frame stall
 * Test: What happen if one frame stall
     * Display computed deltatime and percentage of error
 =======================================================

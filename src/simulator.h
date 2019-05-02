@@ -11,7 +11,7 @@ struct SimulationContext;
 
 struct FrameSetting
 {
-    static constexpr int GpuFrameDuration = 10000;
+    int resolution = 10000;
 
     float scale = 150.0f;
     bool scaleChanged = false;
@@ -30,20 +30,20 @@ struct FrameSetting
     int maxFrameIndex = 100;
 
     int inline CpuSimTime() const {
-        return static_cast<int>(CpuSimRatio * CpuDuration * GpuFrameDuration);
+        return static_cast<int>(CpuSimRatio * CpuDuration * resolution);
     }
     int inline CpuPrepTime() const {
-        return static_cast<int>((1.0f - CpuSimRatio) * CpuDuration * GpuFrameDuration);
+        return static_cast<int>((1.0f - CpuSimRatio) * CpuDuration * resolution);
     }
     int inline GpuTime() const {
-        return static_cast<int>(GpuDuration * GpuFrameDuration);
+        return static_cast<int>(GpuDuration * resolution);
     }
     int inline ToTime(float position) const {
-        return static_cast<int>((position - coreOffset.x) * GpuFrameDuration / scale);
+        return static_cast<int>((position - coreOffset.x) * resolution / scale);
     }
 
     float inline ToPosition(int time) const {
-        return (scale * time) / GpuFrameDuration + coreOffset.x;
+        return (scale * time) / resolution + coreOffset.x;
     }
 };
 
@@ -119,8 +119,6 @@ public:
 private:
     struct TimeBox
     {
-        static constexpr int GpuFrameDuration = FrameSetting::GpuFrameDuration;
-
         int startTime;
         int stopTime;
         const char* name;
