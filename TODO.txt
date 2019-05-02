@@ -1,7 +1,5 @@
 # New Simulator
-* Display stable frame
-* Display average and summary of information
-* Look for pattern if frame is not stable
+* Change simulation parameter: number simulated frame, time resolution
 * Enable/Disable Vsync
     * Split GPU in two: Rendering, Wait Presentation
 * Lock scrolling on stable frame
