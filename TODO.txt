@@ -5,12 +5,8 @@
 * Look for pattern if frame is not stable
 * Enable/Disable Vsync
     * Split GPU in two: Rendering, Wait Presentation
-* Modify Simulation as ratio of GPU time, or ratio of CPU time
-* Stabize scrolling when changing frame timing
-    * TO TRY: Use GetScrollMax()  
-* Add "Reset" button to every setting value
 * Lock scrolling on stable frame
-* Option has integer
+
 =======================================================
 # ARCHIVE
 * Create a frame looking like naughting: 2 stages, synchronized,
