@@ -132,7 +132,22 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
         ImGui::DragScalar("Time Resolution", ImGuiDataType_S32, &setting.resolution, 1, &s32_0, &s32_100000);
         ImGui::Checkbox("Vsync Enabled", &setting.vsyncEnabled);
     }
-    if (ImGui::CollapsingHeader("Parameters", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+    if (ImGui::CollapsingHeader("Perturbation", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::DragScalar("Perturbation Index", ImGuiDataType_S32, &setting.perturbationIndex, 1, &s32_0);
+        ImGui::DragScalar("CpuSim Perturbation", ImGuiDataType_Float, &setting.perturbationSimRatio, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+        ImGui::DragScalar("CpuPrep Perturbation", ImGuiDataType_Float, &setting.perturbationPrepRatio, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+        ImGui::DragScalar("Gpu Perturbation", ImGuiDataType_Float, &setting.perturbationGpuRatio, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+        if (ImGui::Button("Reset4"))
+        {
+            setting.perturbationSimRatio = 1.f;
+            setting.perturbationPrepRatio = 1.f;
+            setting.perturbationGpuRatio = 1.f;
+        }
+    }
+    float perturbationGpuRatio = 0;
+
+    if (ImGui::CollapsingHeader("Visualization", ImGuiTreeNodeFlags_DefaultOpen)) {
         setting.scaleChanged = ImGui::SliderFloat("Zoom (Vsync Period)", &setting.scale, 20.0f, 350.0f);
         ImGui::DragScalar("Frame Simulated Count", ImGuiDataType_S32, &setting.maxFrameIndex, 1, &s32_0, &s32_100000);
     }
@@ -163,9 +178,10 @@ public:
             previousGpuPresentTime = context.frames[m_frameIndex - 1].GpuPresentTime;
         }
         assert(frame.CpuPrepStartTime >= 0);
-        int cpuPrepEndTime = frame.CpuPrepStartTime + context.setting.CpuPrepTime();
+        int cpuPrepEndTime = frame.CpuPrepStartTime + (int) (context.setting.CpuPrepTime(m_frameIndex));
         frame.GpuStartTime = std::max(cpuPrepEndTime, previousGpuPresentTime);
-        frame.GpuStopTime = frame.GpuStartTime + context.setting.GpuTime();
+        frame.GpuStopTime = frame.GpuStartTime + (int) (context.setting.GpuTime(m_frameIndex));
+
         if (context.setting.vsyncEnabled)
         {
             frame.GpuPresentTime = (((frame.GpuStopTime - 1) / context.setting.resolution) + 1 )* context.setting.resolution;
@@ -190,8 +206,9 @@ public:
     void Run(SimulationContext& context) override {
         SimulationContext::Frame& frame = context.frames[m_frameIndex];
         assert(frame.CpuSimStartTime >= 0);
-        int requestTime = frame.CpuSimStartTime + context.setting.CpuSimTime();
-        auto result = context.Schedule(requestTime, context.setting.CpuPrepTime());
+
+        int requestTime = frame.CpuSimStartTime + context.setting.CpuSimTime(m_frameIndex);
+        auto result = context.Schedule(requestTime, (int) (context.setting.CpuPrepTime(m_frameIndex)));
         frame.CpuPrepStartTime = result.schedulingTime;
         frame.CpuPrepCoreIndex = result.coreIndex;
         context.jobQueue.push_back(std::move(std::make_unique<GpuJob>(m_frameIndex)));
@@ -208,16 +225,17 @@ public:
 
     void Run(SimulationContext& context) override {
         SimulationContext::Frame& frame = context.frames[m_frameIndex];
+
         if (m_frameIndex == 0)
         {
             int requestTime = 0;
-            auto result = context.Schedule(requestTime, context.setting.CpuSimTime());
+            auto result = context.Schedule(requestTime, (int) (context.setting.CpuSimTime(m_frameIndex)));
             frame.CpuSimStartTime = result.schedulingTime;
             frame.CpuSimCoreIndex = result.coreIndex;
         }
         else
         {
-            int endSim = context.frames[m_frameIndex - 1].CpuSimStartTime + context.setting.CpuSimTime();
+            int endSim = context.frames[m_frameIndex - 1].CpuSimStartTime + context.setting.CpuSimTime(m_frameIndex - 1);
             int prevGpuPresentTime = 0;
             if (m_frameIndex >= context.setting.frameCount)
             {
@@ -226,7 +244,7 @@ public:
                 prevGpuPresentTime = prevFrame.GpuPresentTime;
             }
             int requestTime = std::max(endSim, prevGpuPresentTime);
-            auto result = context.Schedule(requestTime, context.setting.CpuSimTime());
+            auto result = context.Schedule(requestTime, (int) (context.setting.CpuSimTime(m_frameIndex)));
             frame.CpuSimStartTime = result.schedulingTime;
             frame.CpuSimCoreIndex = result.coreIndex;
         }
@@ -332,14 +350,14 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         TimeBox cpuSim;
         cpuSim.frameIndex = i;
         cpuSim.startTime = frame.CpuSimStartTime;
-        cpuSim.stopTime = cpuSim.startTime + setting.CpuSimTime();
+        cpuSim.stopTime = cpuSim.startTime + setting.CpuSimTime(i);
         cpuSim.coreIndex = frame.CpuSimCoreIndex;
         cpuSim.isGpuTimeBox = false;
         cpuSim.name = "CpuSim";
         TimeBox cpuPrep;
         cpuPrep.frameIndex = i;
         cpuPrep.startTime = frame.CpuPrepStartTime;
-        cpuPrep.stopTime = cpuPrep.startTime + setting.CpuPrepTime();
+        cpuPrep.stopTime = cpuPrep.startTime + setting.CpuPrepTime(i);
         cpuPrep.coreIndex = frame.CpuPrepCoreIndex;
         cpuPrep.isGpuTimeBox = false;
         cpuPrep.name = "CpuPrep";
@@ -377,6 +395,7 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         fr.time = frame.GpuPresentTime;
         fr.firstStable = i == stableFrameIndex;
         fr.stable = i >= stableFrameIndex;
+        fr.isPerturbation = (setting.perturbationIndex == i) && (setting.perturbationGpuRatio != 1.0f || setting.perturbationPrepRatio != 1.0f || setting.perturbationSimRatio != 1.0f);
         if (i > 0)
         {
             fr.duration = frame.GpuPresentTime - context.frames[i - 1].GpuPresentTime;
@@ -593,6 +612,10 @@ void FrameSimulator::DrawFrameRate(const DrawContext& context, const FrameRate& 
     if (fr.stable)
     {
         color = g_Red;
+    }
+    if (fr.isPerturbation)
+    {
+        color = g_Yellow;
     }
     float duration = (float(fr.duration)) / context.setting.resolution;
     context.drawlist.AddLine(p0 + offset, p1 + offset, color, 1.f);

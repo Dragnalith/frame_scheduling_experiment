@@ -20,6 +20,11 @@ struct FrameSetting
     float latencyLineHeight = 15.f;
     float margin = 10.f;
     ImVec2 coreOffset = ImVec2(50.f, 0.f);
+    int deltaTimeSampleCount = 16;
+    int perturbationIndex = 0;
+    float perturbationSimRatio = 1.0f;
+    float perturbationPrepRatio = 1.0f;
+    float perturbationGpuRatio = 1.0f;
 
     bool vsyncEnabled = false;
     float GpuDuration = 1.0f;
@@ -29,14 +34,20 @@ struct FrameSetting
     int frameCount = 3;
     int maxFrameIndex = 100;
 
-    int inline CpuSimTime() const {
-        return static_cast<int>(CpuSimRatio * CpuDuration * resolution);
+    int inline CpuSimTime(int index) const {
+        float pert = perturbationIndex == index ? perturbationSimRatio : 1.0f;
+
+        return static_cast<int>(CpuSimRatio * CpuDuration * resolution * pert);
     }
-    int inline CpuPrepTime() const {
-        return static_cast<int>((1.0f - CpuSimRatio) * CpuDuration * resolution);
+    int inline CpuPrepTime(int index) const {
+        float pert = perturbationIndex == index ? perturbationPrepRatio : 1.0f;
+
+        return static_cast<int>((1.0f - CpuSimRatio) * CpuDuration * resolution * pert);
     }
-    int inline GpuTime() const {
-        return static_cast<int>(GpuDuration * resolution);
+    int inline GpuTime(int index) const {
+        float pert = perturbationIndex == index ? perturbationGpuRatio : 1.0f;
+
+        return static_cast<int>(GpuDuration * resolution * pert);
     }
     int inline ToTime(float position) const {
         return static_cast<int>((position - coreOffset.x) * resolution / scale);
@@ -142,6 +153,7 @@ private:
         bool firstStable = false;
         bool stable = false;
         bool missed = false;
+        bool isPerturbation = false;
     };
 
     struct DrawContext
