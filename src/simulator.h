@@ -119,6 +119,15 @@ private:
         int stopTime = -1;
     };
 
+    struct FrameRate
+    {
+        int frameIndex = -1;
+        int time = -1;
+        int duration = -1;
+        bool firstStable = false;
+        bool missed = false;
+    };
+
     struct DrawContext
     {
         DrawContext(const Setting& set, ImDrawList& dl, const ImVec2& cursor, const ImVec2& winPos, const ImVec2& winSize)
@@ -136,7 +145,8 @@ private:
         const ImVec2 windowSize;
         ImDrawList& drawlist;
 
-        const ImVec2 gpuLineOrigin { startCursorPosition + windowPosition};
+        const ImVec2 frameRateOrigin{ startCursorPosition + windowPosition };
+        const ImVec2 gpuLineOrigin { frameRateOrigin + ImVec2(0.f, 20.f) };
         const ImVec2 cpuLineOrigin { gpuLineOrigin + ImVec2(0.f, setting.margin + setting.lineHeight)};
         const ImVec2 latencyOrigin{ cpuLineOrigin + ImVec2(0.f, setting.margin + setting.coreCount * setting.lineHeight) };
     };
@@ -147,9 +157,12 @@ private:
     // Return the bottom-leftest position
     void DrawTimeBox(const DrawContext& context, const TimeBox& timebox, const ImVec2& offset);
     void DrawLatencyBox(const DrawContext& context, const LatencyBox& timebox, const ImVec2& offset);
+    void DrawFrameRate(const DrawContext& context, const FrameRate& fr, const ImVec2& offset);
 
 private:
     std::vector<TimeBox> m_timeboxes;
     std::vector<LatencyBox> m_latencyBoxes;
+    std::vector<FrameRate> m_frameRates;
+
     int m_previousTimeMin = -1;
 };

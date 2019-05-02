@@ -1,11 +1,13 @@
 # New Simulator
-* Display framerate
 * Display stable frame
 * Display average and summary of information
 * Look for pattern if frame is not stable
 * Enable/Disable Vsync
     * Split GPU in two: Rendering, Wait Presentation
 * Lock scrolling on stable frame
+* Test: computing of deltatime
+* Test: What happen if one frame stall
+    * Display computed deltatime and percentage of error
 =======================================================
 # ARCHIVE
 * Create a frame looking like naughting: 2 stages, synchronized,

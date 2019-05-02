@@ -287,6 +287,7 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
     // Dummy simulation
     m_timeboxes.clear();
     m_latencyBoxes.clear();
+    m_frameRates.clear();
     for (int i = 0; i < (int) context.frames.size(); i++)
     {
         const SimulationContext::Frame& frame = context.frames[i];
@@ -323,6 +324,19 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         l.startTime = frame.CpuSimStartTime;
         l.stopTime = frame.GpuPresentTime;
         m_latencyBoxes.push_back(l);
+
+        FrameRate fr;
+        fr.frameIndex = i;
+        fr.time = frame.GpuPresentTime;
+        if (i > 0)
+        {
+            fr.duration = frame.GpuPresentTime - context.frames[i - 1].GpuPresentTime;
+        }
+        else
+        {
+            fr.duration = frame.GpuPresentTime;
+        }
+        m_frameRates.push_back(fr);
     }
 }
 
@@ -365,6 +379,12 @@ void FrameSimulator::Draw(const FrameSimulator::Setting& setting)
     }
     int timeMax = setting.ToTime(scroll + ImGui::GetWindowSize().x);
 
+    for (const auto& f : m_frameRates)
+    {
+        if (timeMin <= f.time && f.time <= timeMax) {
+            DrawFrameRate(context, f, offset);
+        }
+    }
     int maxTime = 0;
     for (const auto& t : m_timeboxes)
     {
@@ -507,4 +527,21 @@ void FrameSimulator::DrawLatencyBox(const DrawContext& context, const LatencyBox
     ImVec2 offsetFrame = (size - textFrameSize) * 0.5f;
     offsetFrame.x = 2.f;
     context.drawlist.AddText(p0 + offsetFrame + offset, c, name);
+}
+
+void FrameSimulator::DrawFrameRate(const DrawContext& context, const FrameRate& fr, const ImVec2& offset)
+{
+    ImVec2 origin = context.frameRateOrigin;
+
+    ImVec2 p0 = origin;
+    ImVec2 p1 = origin;
+    p0.x += context.setting.ToPosition(fr.time);
+    p1.x = p0.x;
+    p1.y += context.windowSize.y;
+
+    float duration = (float(fr.duration)) / context.setting.GpuFrameDuration;
+    context.drawlist.AddLine(p0 + offset, p1 + offset, g_DarkGrey, 1.f);
+    std::stringstream framerateText;
+    framerateText << '[' << fr.frameIndex << "] " << duration;
+    context.drawlist.AddText(p0 + ImVec2(10.f, 5.f) + offset, g_Grey, framerateText.str().c_str());
 }
