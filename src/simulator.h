@@ -21,7 +21,8 @@ struct FrameSetting
     float margin = 10.f;
     ImVec2 coreOffset = ImVec2(50.f, 0.f);
     int deltaTimeSampleCount = 16;
-    int perturbationIndex = 0;
+	int perturbationIndex = 0;
+	int perturbationDuration = 0;
     float perturbationSimRatio = 1.0f;
     float perturbationPrepRatio = 1.0f;
     float perturbationGpuRatio = 1.0f;
@@ -35,18 +36,22 @@ struct FrameSetting
     int frameCount = 3;
     int maxFrameIndex = 100;
 
+	bool inline isPerturbationFrame(int index) const {
+		return perturbationIndex <= index && index < perturbationIndex + perturbationDuration;
+	}
+
     int inline CpuSimTime(int index) const {
-        float pert = perturbationIndex == index ? perturbationSimRatio : 1.0f;
+        float pert = isPerturbationFrame(index)? perturbationSimRatio : 1.0f;
 
         return static_cast<int>(CpuSimRatio * CpuDuration * resolution * pert);
     }
     int inline CpuPrepTime(int index) const {
-        float pert = perturbationIndex == index ? perturbationPrepRatio : 1.0f;
+        float pert = isPerturbationFrame(index) ? perturbationPrepRatio : 1.0f;
 
         return static_cast<int>((1.0f - CpuSimRatio) * CpuDuration * resolution * pert);
     }
     int inline GpuTime(int index) const {
-        float pert = perturbationIndex == index ? perturbationGpuRatio : 1.0f;
+        float pert = isPerturbationFrame(index) ? perturbationGpuRatio : 1.0f;
 
         return static_cast<int>(GpuDuration * resolution * pert);
     }

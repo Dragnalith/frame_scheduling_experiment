@@ -159,7 +159,8 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
     }
 
     if (ImGui::CollapsingHeader("Perturbation", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::DragScalar("Perturbation Index", ImGuiDataType_S32, &setting.perturbationIndex, 1, &s32_0);
+		ImGui::DragScalar("Start Index", ImGuiDataType_S32, &setting.perturbationIndex, 1, &s32_0);
+		ImGui::DragScalar("Perturbation Duration", ImGuiDataType_S32, &setting.perturbationDuration, 1, &s32_0);
         ImGui::DragScalar("CpuSim Perturbation", ImGuiDataType_Float, &setting.perturbationSimRatio, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
         ImGui::DragScalar("CpuPrep Perturbation", ImGuiDataType_Float, &setting.perturbationPrepRatio, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
         ImGui::DragScalar("Gpu Perturbation", ImGuiDataType_Float, &setting.perturbationGpuRatio, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
@@ -283,9 +284,9 @@ public:
 }
 
 SimulationContext::SimulationContext(const FrameSetting& s) : setting(s) {
-    coreTime.resize(setting.coreCount);
-    frames.resize(setting.maxFrameIndex + 1);
-    for (int i = 0; i < setting.coreCount; i++)
+    coreTime.resize(s.coreCount);
+    frames.resize(s.maxFrameIndex + 1);
+    for (int i = 0; i < s.coreCount; i++)
     {
         coreTime[i] = 0;
     }
@@ -420,7 +421,7 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         fr.time = frame.GpuPresentTime;
         fr.firstStable = i == stableFrameIndex;
         fr.stable = i >= stableFrameIndex;
-        fr.isPerturbation = (setting.perturbationIndex == i) && (setting.perturbationGpuRatio != 1.0f || setting.perturbationPrepRatio != 1.0f || setting.perturbationSimRatio != 1.0f);
+        fr.isPerturbation = setting.isPerturbationFrame(i);
         if (i > 0)
         {
             fr.duration = frame.GpuPresentTime - context.frames[i - 1].GpuPresentTime;
