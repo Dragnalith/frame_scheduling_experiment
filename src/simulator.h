@@ -160,6 +160,7 @@ private:
         bool stable = false;
         bool missed = false;
         bool isPerturbation = false;
+		int dt_prediction = -1;
     };
 
     struct DrawContext
@@ -180,7 +181,7 @@ private:
         ImDrawList& drawlist;
 
         const ImVec2 frameRateOrigin{ startCursorPosition + windowPosition };
-        const ImVec2 gpuLineOrigin { frameRateOrigin + ImVec2(0.f, 20.f) };
+        const ImVec2 gpuLineOrigin { frameRateOrigin + ImVec2(0.f, 40.f) };
         const ImVec2 cpuLineOrigin { gpuLineOrigin + ImVec2(0.f, setting.margin + setting.lineHeight)};
         const ImVec2 latencyOrigin{ cpuLineOrigin + ImVec2(0.f, setting.margin + setting.coreCount * setting.lineHeight) };
     };

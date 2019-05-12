@@ -1,10 +1,5 @@
 # New Simulator
-* Test: computing of deltatime and see what happen if one frame stall
-* Test: What happen if one frame stall
-    * Display computed deltatime and percentage of error
-
 * Simulator: Fix CpuSim stop time is different from CpuPrep start time
-* Simulator: Compute deltatime
 * Simulator: Multiple Job to use several core at the same time 
 =======================================================
 # ARCHIVE

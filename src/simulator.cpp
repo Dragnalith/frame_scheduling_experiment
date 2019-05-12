@@ -80,7 +80,8 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
     const float f32_3 = 3.0f;
     const float f32_4 = 4.0f;
     const int s32_0 = 0;
-    const int s32_100000 = 100000;
+	const int s32_64 = 64;
+	const int s32_100000 = 100000;
     const int s32_1 = 1;
     if (ImGui::CollapsingHeader("Parameters", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::SliderInt("Core Count", &setting.coreCount, 1, 16);
@@ -175,7 +176,8 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
 
     if (ImGui::CollapsingHeader("Visualization", ImGuiTreeNodeFlags_DefaultOpen)) {
         setting.scaleChanged = ImGui::SliderFloat("Zoom (Vsync Period)", &setting.scale, 20.0f, 350.0f);
-        ImGui::DragScalar("Frame Simulated Count", ImGuiDataType_S32, &setting.maxFrameIndex, 1, &s32_0, &s32_100000);
+		ImGui::DragScalar("Frame Simulated Count", ImGuiDataType_S32, &setting.maxFrameIndex, 1, &s32_0, &s32_100000);
+		ImGui::DragScalar("DeltaTime Sample Count", ImGuiDataType_S32, &setting.deltaTimeSampleCount, 1, &s32_1, &s32_64);
     }
     ImGui::End();
 }
@@ -422,6 +424,7 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         fr.firstStable = i == stableFrameIndex;
         fr.stable = i >= stableFrameIndex;
         fr.isPerturbation = setting.isPerturbationFrame(i);
+
         if (i > 0)
         {
             fr.duration = frame.GpuPresentTime - context.frames[i - 1].GpuPresentTime;
@@ -430,6 +433,20 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         {
             fr.duration = frame.GpuPresentTime;
         }
+		int total = 0;
+		for (int k = 0; k < setting.deltaTimeSampleCount; k++)
+		{
+			int idx = i - k - 1;
+			if (idx >= 0)
+			{
+				total += m_frameRates[idx].duration;
+			}
+			else
+			{
+				total += setting.resolution;
+			}
+		}
+		fr.dt_prediction = total / setting.deltaTimeSampleCount;
         m_frameRates.push_back(fr);
     }
 }
@@ -644,11 +661,18 @@ void FrameSimulator::DrawFrameRate(const DrawContext& context, const FrameRate& 
         color = g_Yellow;
     }
     float duration = (float(fr.duration)) / context.setting.resolution;
+	float dt_pred = (float(fr.dt_prediction)) / context.setting.resolution;
+	float dt_error = (duration - dt_pred) / duration;
     context.drawlist.AddLine(p0 + offset, p1 + offset, color, 1.f);
-    std::stringstream framerateText;
-    framerateText << '[' << fr.frameIndex << "] " << duration;
-    std::string text_str = framerateText.str();
-    const char* text = text_str.c_str();
-    ImVec2 textFrameSize = ImGui::CalcTextSize(text);
-    context.drawlist.AddText(p0 + ImVec2(-textFrameSize.x - 5.f, 0.f) + offset, g_Grey, text);
+	std::stringstream framerateText;
+	framerateText << '[' << fr.frameIndex << "] " << duration;
+	std::string text_str = framerateText.str();
+	const char* text = text_str.c_str();
+	std::stringstream dtText;
+	dtText << "dt: " << dt_pred << " (err: " << dt_error << ")";
+	std::string dt_text_str = dtText.str();
+	const char* dt_text = dt_text_str.c_str();
+	ImVec2 textFrameSize = ImMax(ImGui::CalcTextSize(text), ImGui::CalcTextSize(dt_text));
+	context.drawlist.AddText(p0 + ImVec2(-textFrameSize.x - 5.f, 0.f) + offset, g_Grey, text);
+	context.drawlist.AddText(p0 + ImVec2(-textFrameSize.x - 5.f, 20.f) + offset, g_Grey, dt_text);
 }
