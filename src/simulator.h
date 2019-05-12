@@ -31,6 +31,7 @@ struct FrameSetting
     float CpuDuration = 1.0f;
     float CpuSimRatio = 0.5f;
     float CpuSimDuration = 0.5f;
+	float CpuPrepDuration = 0.5f;
     int frameCount = 3;
     int maxFrameIndex = 100;
 

@@ -87,48 +87,73 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
         ImGui::SliderInt("Frame Count", &setting.frameCount, 1, 16);
 
         ImGui::DragScalar("Gpu Duration", ImGuiDataType_Float, &setting.GpuDuration, 0.01f, &f32_0, &f32_2, "%f", 1.0f);
-        bool cpuDurationChanged = ImGui::DragScalar("All Cpu Duration", ImGuiDataType_Float, &setting.CpuDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
-        ImGui::SameLine();
-        if (ImGui::Button("Reset"))
-        {
-            cpuDurationChanged = true;
-            setting.CpuDuration = 1.0f;
-        }
-        if (cpuDurationChanged) {
-            if (setting.CpuDuration > 0.f)
-            {
-                setting.CpuSimDuration = setting.CpuSimRatio * setting.CpuDuration;
-            }
-            else {
-                setting.CpuSimDuration = 0.f;
-            }
-        }
-        bool cpuSimRatioChanged = ImGui::DragScalar("CpuSim Ratio", ImGuiDataType_Float, &setting.CpuSimRatio, 0.01f, &f32_0, &f32_1, "%f", 1.0f);
-        ImGui::SameLine();
-        if (ImGui::Button("Reset1"))
-        {
-            cpuSimRatioChanged = true;
-            setting.CpuSimRatio = 0.5f;
-        }
-        if (cpuSimRatioChanged) {
-            setting.CpuSimDuration = setting.CpuSimRatio * setting.CpuDuration;
-        }
-        bool cpuSimDurationChanged = ImGui::DragScalar("CpuSim Duration", ImGuiDataType_Float, &setting.CpuSimDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
-        ImGui::SameLine();
-        if (ImGui::Button("Reset2"))
-        {
-            cpuSimDurationChanged = true;
-            setting.CpuSimDuration = 0.5f;
-        }
-        if (cpuSimDurationChanged)
-        {
-            float old = setting.CpuSimRatio;
-            float oldPrepDuration = (1.0f - setting.CpuSimRatio) * setting.CpuDuration;
-            setting.CpuDuration = setting.CpuSimDuration + oldPrepDuration;
-            setting.CpuSimRatio = setting.CpuSimDuration / setting.CpuDuration;
-            std::cout << "old: " << old << ", new: " << setting.CpuSimRatio << '\n';
-        }
+		// Cpu Duration
+		{
+			bool cpuDurationChanged = ImGui::DragScalar("All Cpu Duration", ImGuiDataType_Float, &setting.CpuDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+			ImGui::SameLine();
+			if (ImGui::Button("Reset"))
+			{
+				cpuDurationChanged = true;
+				setting.CpuDuration = 1.0f;
+			}
+			if (cpuDurationChanged) {
+				if (setting.CpuDuration > 0.f)
+				{
+					setting.CpuSimDuration = setting.CpuSimRatio * setting.CpuDuration;
+					setting.CpuPrepDuration = setting.CpuDuration - setting.CpuSimDuration;
+				}
+				else {
+					setting.CpuSimDuration = 0.f;
+					setting.CpuPrepDuration = 0.f;
+				}
+			}
+		}
+		// CpuSim Ratio
+		{
+			bool cpuSimRatioChanged = ImGui::DragScalar("CpuSim Ratio", ImGuiDataType_Float, &setting.CpuSimRatio, 0.01f, &f32_0, &f32_1, "%f", 1.0f);
+			ImGui::SameLine();
+			if (ImGui::Button("Reset1"))
+			{
+				cpuSimRatioChanged = true;
+				setting.CpuSimRatio = 0.5f;
+			}
+			if (cpuSimRatioChanged) {
+				setting.CpuSimDuration = setting.CpuSimRatio * setting.CpuDuration;
+				setting.CpuPrepDuration = setting.CpuDuration - setting.CpuSimDuration;
+			}
+		}
+		// CpuSim Duration
+		{
+			bool cpuSimDurationChanged = ImGui::DragScalar("CpuSim Duration", ImGuiDataType_Float, &setting.CpuSimDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+			ImGui::SameLine();
+			if (ImGui::Button("Reset2"))
+			{
+				cpuSimDurationChanged = true;
+				setting.CpuSimDuration = 0.5f;
+			}
+			if (cpuSimDurationChanged)
+			{
+				setting.CpuDuration = setting.CpuPrepDuration + setting.CpuSimDuration;
+				setting.CpuSimRatio = ((float) setting.CpuSimDuration) / setting.CpuDuration;
+			}
+		}
 
+		// CpuPrep Duration
+		{
+			bool cpuPrepDurationChanged = ImGui::DragScalar("CpuPrep Duration", ImGuiDataType_Float, &setting.CpuPrepDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+			ImGui::SameLine();
+			if (ImGui::Button("Reset3"))
+			{
+				cpuPrepDurationChanged = true;
+				setting.CpuPrepDuration = 0.5f;
+			}
+			if (cpuPrepDurationChanged)
+			{
+
+				setting.CpuDuration = setting.CpuPrepDuration + setting.CpuSimDuration;
+				setting.CpuSimRatio = ((float)setting.CpuSimDuration) / setting.CpuDuration;
+			}
+		}
         ImGui::DragScalar("Time Resolution", ImGuiDataType_S32, &setting.resolution, 1, &s32_0, &s32_100000);
         ImGui::Checkbox("Vsync Enabled", &setting.vsyncEnabled);
     }
