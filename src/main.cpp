@@ -79,7 +79,7 @@ void App::init()
         s_App->Flows.push_back(flow);
     }
 
-    
+
     {
         auto flow = std::make_shared<FrameFlow>("Realistic Jobification");
         flow->stages.clear();
@@ -94,7 +94,7 @@ void App::init()
         s_App->Flows.push_back(flow);
     }
 
-        
+
     {
         auto flow = std::make_shared<FrameFlow>("Realistic Jobification - Interleaved");
         flow->stages.clear();
@@ -152,7 +152,7 @@ int main(int, char**)
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
-    gladLoadGL((GLADloadfunc) glfwGetProcAddress);
+    gladLoadGL((GLADloadfunc)glfwGetProcAddress);
 
     //gl3wInit();
 
@@ -184,9 +184,9 @@ int main(int, char**)
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
 
     auto font_default = io.Fonts->AddFontDefault();
-    auto font_cousine = io.Fonts->AddFontFromFileTTF( CPP_SRC_DIR "modules/imgui/misc/fonts/Cousine-Regular.ttf", 15.0f);
-    auto font_karla   = io.Fonts->AddFontFromFileTTF( CPP_SRC_DIR "modules/imgui/misc/fonts/Karla-Regular.ttf", 18.0f);
-    auto font_lato    = io.Fonts->AddFontFromFileTTF( CPP_SRC_DIR "fonts/Lato-Regular.ttf", 18.0f);
+    auto font_cousine = io.Fonts->AddFontFromFileTTF(CPP_SRC_DIR "modules/imgui/misc/fonts/Cousine-Regular.ttf", 15.0f);
+    auto font_karla = io.Fonts->AddFontFromFileTTF(CPP_SRC_DIR "modules/imgui/misc/fonts/Karla-Regular.ttf", 18.0f);
+    auto font_lato = io.Fonts->AddFontFromFileTTF(CPP_SRC_DIR "fonts/Lato-Regular.ttf", 18.0f);
 
 
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
@@ -226,18 +226,18 @@ int main(int, char**)
         static int old_font_current = 0;
         switch (font_current)
         {
-            case 0:
-                ImGui::PushFont(font_default);
-                break;
-            case 1:
-                ImGui::PushFont(font_cousine);
-                break;
-            case 2:
-                ImGui::PushFont(font_karla);
-                break;
-            case 3:
-                ImGui::PushFont(font_lato);
-                break;
+        case 0:
+            ImGui::PushFont(font_default);
+            break;
+        case 1:
+            ImGui::PushFont(font_cousine);
+            break;
+        case 2:
+            ImGui::PushFont(font_karla);
+            break;
+        case 3:
+            ImGui::PushFont(font_lato);
+            break;
         }
 
         // 4. Show the ImGui demo window. Most of the sample code is in ImGui::ShowDemoWindow(). Read its code to learn more about Dear ImGui!
@@ -249,9 +249,12 @@ int main(int, char**)
 
 
         bool yes = true;
-        DrawFrameEditor(App::get().Flow);
-        //OtherNodeEditor(&yes);
-        DrawVisualizer();
+        if (false)
+        {
+            DrawFrameEditor(App::get().Flow);
+            //OtherNodeEditor(&yes);
+            DrawVisualizer();
+        }
 
         frameSimulator.DrawOptions(frameSimulatorSetting);
         frameSimulator.Simulate(frameSimulatorSetting);
@@ -259,7 +262,7 @@ int main(int, char**)
 
         // 1. Show a simple window.
         // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets automatically appears in a window called "Debug".
-        if (false ) {
+        if (false) {
             static float f = 0.0f;
             static int counter = 0;
             ImGui::Text("Hello, world!");                           // Display some text (you can use a format string too)
@@ -334,7 +337,7 @@ void StyleColorsSofty(ImGuiStyle* dst)
     int hspacing = 8;
     int vspacing = 6;
     style->DisplaySafeAreaPadding = ImVec2(0, 0);
-    style->WindowPadding = ImVec2(hspacing/2, vspacing);
+    style->WindowPadding = ImVec2(hspacing / 2, vspacing);
     style->FramePadding = ImVec2(hspacing, vspacing);
     style->ItemSpacing = ImVec2(hspacing, vspacing);
     style->ItemInnerSpacing = ImVec2(hspacing, vspacing);

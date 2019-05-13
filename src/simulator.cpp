@@ -1,17 +1,15 @@
 #include "simulator.h"
+#include "debug.h"
 #include "imgui.h"
 #include "imgui_internal.h"
-#include "debug.h"
 
-#include <sstream>
 #include <algorithm>
+#include <sstream>
 
 #include <assert.h>
 #include <iostream>
 
-namespace
-{
-
+namespace {
 
     template <class T, int N>
     constexpr int array_size(T(&)[N]) { return N; }
@@ -56,11 +54,9 @@ namespace
             return g_White;
         }
     }
-
 }
 
-namespace
-{
+namespace {
     void Round100(float& f)
     {
         float r = static_cast<float>(static_cast<int>(f * 100.f)) / 100.f;
@@ -80,93 +76,85 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
     const float f32_3 = 3.0f;
     const float f32_4 = 4.0f;
     const int s32_0 = 0;
-	const int s32_64 = 64;
-	const int s32_100000 = 100000;
+    const int s32_64 = 64;
+    const int s32_100000 = 100000;
     const int s32_1 = 1;
     if (ImGui::CollapsingHeader("Parameters", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::SliderInt("Core Count", &setting.coreCount, 1, 16);
         ImGui::SliderInt("Frame Count", &setting.frameCount, 1, 16);
 
         ImGui::DragScalar("Gpu Duration", ImGuiDataType_Float, &setting.GpuDuration, 0.01f, &f32_0, &f32_2, "%f", 1.0f);
-		// Cpu Duration
-		{
-			bool cpuDurationChanged = ImGui::DragScalar("All Cpu Duration", ImGuiDataType_Float, &setting.CpuDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
-			ImGui::SameLine();
-			if (ImGui::Button("Reset"))
-			{
-				cpuDurationChanged = true;
-				setting.CpuDuration = 1.0f;
-			}
-			if (cpuDurationChanged) {
-				if (setting.CpuDuration > 0.f)
-				{
-					setting.CpuSimDuration = setting.CpuSimRatio * setting.CpuDuration;
-					setting.CpuPrepDuration = setting.CpuDuration - setting.CpuSimDuration;
-				}
-				else {
-					setting.CpuSimDuration = 0.f;
-					setting.CpuPrepDuration = 0.f;
-				}
-			}
-		}
-		// CpuSim Ratio
-		{
-			bool cpuSimRatioChanged = ImGui::DragScalar("CpuSim Ratio", ImGuiDataType_Float, &setting.CpuSimRatio, 0.01f, &f32_0, &f32_1, "%f", 1.0f);
-			ImGui::SameLine();
-			if (ImGui::Button("Reset1"))
-			{
-				cpuSimRatioChanged = true;
-				setting.CpuSimRatio = 0.5f;
-			}
-			if (cpuSimRatioChanged) {
-				setting.CpuSimDuration = setting.CpuSimRatio * setting.CpuDuration;
-				setting.CpuPrepDuration = setting.CpuDuration - setting.CpuSimDuration;
-			}
-		}
-		// CpuSim Duration
-		{
-			bool cpuSimDurationChanged = ImGui::DragScalar("CpuSim Duration", ImGuiDataType_Float, &setting.CpuSimDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
-			ImGui::SameLine();
-			if (ImGui::Button("Reset2"))
-			{
-				cpuSimDurationChanged = true;
-				setting.CpuSimDuration = 0.5f;
-			}
-			if (cpuSimDurationChanged)
-			{
-				setting.CpuDuration = setting.CpuPrepDuration + setting.CpuSimDuration;
-				setting.CpuSimRatio = ((float) setting.CpuSimDuration) / setting.CpuDuration;
-			}
-		}
+        // Cpu Duration
+        {
+            bool cpuDurationChanged = ImGui::DragScalar("All Cpu Duration", ImGuiDataType_Float, &setting.CpuDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+            ImGui::SameLine();
+            if (ImGui::Button("Reset")) {
+                cpuDurationChanged = true;
+                setting.CpuDuration = 1.0f;
+            }
+            if (cpuDurationChanged) {
+                if (setting.CpuDuration > 0.f) {
+                    setting.CpuSimDuration = setting.CpuSimRatio * setting.CpuDuration;
+                    setting.CpuPrepDuration = setting.CpuDuration - setting.CpuSimDuration;
+                }
+                else {
+                    setting.CpuSimDuration = 0.f;
+                    setting.CpuPrepDuration = 0.f;
+                }
+            }
+        }
+        // CpuSim Ratio
+        {
+            bool cpuSimRatioChanged = ImGui::DragScalar("CpuSim Ratio", ImGuiDataType_Float, &setting.CpuSimRatio, 0.01f, &f32_0, &f32_1, "%f", 1.0f);
+            ImGui::SameLine();
+            if (ImGui::Button("Reset1")) {
+                cpuSimRatioChanged = true;
+                setting.CpuSimRatio = 0.5f;
+            }
+            if (cpuSimRatioChanged) {
+                setting.CpuSimDuration = setting.CpuSimRatio * setting.CpuDuration;
+                setting.CpuPrepDuration = setting.CpuDuration - setting.CpuSimDuration;
+            }
+        }
+        // CpuSim Duration
+        {
+            bool cpuSimDurationChanged = ImGui::DragScalar("CpuSim Duration", ImGuiDataType_Float, &setting.CpuSimDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+            ImGui::SameLine();
+            if (ImGui::Button("Reset2")) {
+                cpuSimDurationChanged = true;
+                setting.CpuSimDuration = 0.5f;
+            }
+            if (cpuSimDurationChanged) {
+                setting.CpuDuration = setting.CpuPrepDuration + setting.CpuSimDuration;
+                setting.CpuSimRatio = ((float)setting.CpuSimDuration) / setting.CpuDuration;
+            }
+        }
 
-		// CpuPrep Duration
-		{
-			bool cpuPrepDurationChanged = ImGui::DragScalar("CpuPrep Duration", ImGuiDataType_Float, &setting.CpuPrepDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
-			ImGui::SameLine();
-			if (ImGui::Button("Reset3"))
-			{
-				cpuPrepDurationChanged = true;
-				setting.CpuPrepDuration = 0.5f;
-			}
-			if (cpuPrepDurationChanged)
-			{
+        // CpuPrep Duration
+        {
+            bool cpuPrepDurationChanged = ImGui::DragScalar("CpuPrep Duration", ImGuiDataType_Float, &setting.CpuPrepDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
+            ImGui::SameLine();
+            if (ImGui::Button("Reset3")) {
+                cpuPrepDurationChanged = true;
+                setting.CpuPrepDuration = 0.5f;
+            }
+            if (cpuPrepDurationChanged) {
 
-				setting.CpuDuration = setting.CpuPrepDuration + setting.CpuSimDuration;
-				setting.CpuSimRatio = ((float)setting.CpuSimDuration) / setting.CpuDuration;
-			}
-		}
+                setting.CpuDuration = setting.CpuPrepDuration + setting.CpuSimDuration;
+                setting.CpuSimRatio = ((float)setting.CpuSimDuration) / setting.CpuDuration;
+            }
+        }
         ImGui::DragScalar("Time Resolution", ImGuiDataType_S32, &setting.resolution, 1, &s32_0, &s32_100000);
         ImGui::Checkbox("Vsync Enabled", &setting.vsyncEnabled);
     }
 
     if (ImGui::CollapsingHeader("Perturbation", ImGuiTreeNodeFlags_DefaultOpen)) {
-		ImGui::DragScalar("Start Index", ImGuiDataType_S32, &setting.perturbationIndex, 1, &s32_0);
-		ImGui::DragScalar("Perturbation Duration", ImGuiDataType_S32, &setting.perturbationDuration, 1, &s32_0);
+        ImGui::DragScalar("Start Index", ImGuiDataType_S32, &setting.perturbationIndex, 1, &s32_0);
+        ImGui::DragScalar("Perturbation Duration", ImGuiDataType_S32, &setting.perturbationDuration, 1, &s32_0);
         ImGui::DragScalar("CpuSim Perturbation", ImGuiDataType_Float, &setting.perturbationSimRatio, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
         ImGui::DragScalar("CpuPrep Perturbation", ImGuiDataType_Float, &setting.perturbationPrepRatio, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
         ImGui::DragScalar("Gpu Perturbation", ImGuiDataType_Float, &setting.perturbationGpuRatio, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
-        if (ImGui::Button("Reset4"))
-        {
+        if (ImGui::Button("Reset4")) {
             setting.perturbationSimRatio = 1.f;
             setting.perturbationPrepRatio = 1.f;
             setting.perturbationGpuRatio = 1.f;
@@ -176,130 +164,132 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
 
     if (ImGui::CollapsingHeader("Visualization", ImGuiTreeNodeFlags_DefaultOpen)) {
         setting.scaleChanged = ImGui::SliderFloat("Zoom (Vsync Period)", &setting.scale, 20.0f, 350.0f);
-		ImGui::DragScalar("Frame Simulated Count", ImGuiDataType_S32, &setting.maxFrameIndex, 1, &s32_0, &s32_100000);
-		ImGui::DragScalar("DeltaTime Sample Count", ImGuiDataType_S32, &setting.deltaTimeSampleCount, 1, &s32_1, &s32_64);
+        ImGui::DragScalar("Frame Simulated Count", ImGuiDataType_S32, &setting.maxFrameIndex, 1, &s32_0, &s32_100000);
+        ImGui::DragScalar("DeltaTime Sample Count", ImGuiDataType_S32, &setting.deltaTimeSampleCount, 1, &s32_1, &s32_64);
     }
     ImGui::End();
 }
 
-namespace
-{
+namespace {
 
-class CpuSimJob;
-class CpuPrepJob;
-class GpuJob;
+    class CpuSimJob;
+    class CpuPrepJob;
+    class GpuJob;
 
-class GpuJob : public FrameJob
-{
-public:
-    GpuJob(int frameIndex) : FrameJob(frameIndex) {}
-    bool IsReady(const SimulationContext& context) const override {
-        return m_frameIndex == 0 || context.frames[m_frameIndex - 1].IsDone();
-    }
-
-    void Run(SimulationContext& context) override {
-        SimulationContext::Frame& frame = context.frames[m_frameIndex];
-
-        int previousGpuPresentTime = 0;
-        if (m_frameIndex > 0)
+    class GpuJob : public FrameJob {
+    public:
+        GpuJob(int frameIndex)
+            : FrameJob(frameIndex)
         {
-            previousGpuPresentTime = context.frames[m_frameIndex - 1].GpuPresentTime;
         }
-        assert(frame.CpuPrepStartTime >= 0);
-        int cpuPrepEndTime = frame.CpuPrepStartTime + (int) (context.setting.CpuPrepTime(m_frameIndex));
-        frame.GpuStartTime = std::max(cpuPrepEndTime, previousGpuPresentTime);
-        frame.GpuStopTime = frame.GpuStartTime + (int) (context.setting.GpuTime(m_frameIndex));
-
-        if (context.setting.vsyncEnabled)
+        bool IsReady(const SimulationContext& context) const override
         {
-            frame.GpuPresentTime = (((frame.GpuStopTime - 1) / context.setting.resolution) + 1 )* context.setting.resolution;
+            return m_frameIndex == 0 || context.frames[m_frameIndex - 1].IsDone();
         }
-        else
+
+        void Run(SimulationContext& context) override
         {
-            frame.GpuPresentTime = frame.GpuStopTime;
-        }
-        DRGN_ASSERT(frame.GpuStopTime <= frame.GpuPresentTime);
+            SimulationContext::Frame& frame = context.frames[m_frameIndex];
 
-    }
-};
-class CpuPrepJob : public FrameJob
-{
-public:
-    CpuPrepJob(int frameIndex) : FrameJob(frameIndex) {}
-
-    bool IsReady(const SimulationContext& context) const override {
-        return true;
-    }
-
-    void Run(SimulationContext& context) override {
-        SimulationContext::Frame& frame = context.frames[m_frameIndex];
-        assert(frame.CpuSimStartTime >= 0);
-
-        int requestTime = frame.CpuSimStartTime + context.setting.CpuSimTime(m_frameIndex);
-        auto result = context.Schedule(requestTime, (int) (context.setting.CpuPrepTime(m_frameIndex)));
-        frame.CpuPrepStartTime = result.schedulingTime;
-        frame.CpuPrepCoreIndex = result.coreIndex;
-        context.jobQueue.push_back(std::move(std::make_unique<GpuJob>(m_frameIndex)));
-    }
-};
-class CpuSimJob : public FrameJob
-{
-public:
-    CpuSimJob(int frameIndex) : FrameJob(frameIndex) {}
-
-    bool IsReady(const SimulationContext& context) const override {
-        return m_frameIndex < context.setting.frameCount || context.frames[m_frameIndex - context.setting.frameCount].IsDone();
-    }
-
-    void Run(SimulationContext& context) override {
-        SimulationContext::Frame& frame = context.frames[m_frameIndex];
-
-        if (m_frameIndex == 0)
-        {
-            int requestTime = 0;
-            auto result = context.Schedule(requestTime, (int) (context.setting.CpuSimTime(m_frameIndex)));
-            frame.CpuSimStartTime = result.schedulingTime;
-            frame.CpuSimCoreIndex = result.coreIndex;
-        }
-        else
-        {
-            int endSim = context.frames[m_frameIndex - 1].CpuSimStartTime + context.setting.CpuSimTime(m_frameIndex - 1);
-            int prevGpuPresentTime = 0;
-            if (m_frameIndex >= context.setting.frameCount)
-            {
-                SimulationContext::Frame& prevFrame = context.frames[m_frameIndex - context.setting.frameCount];
-                assert(prevFrame.IsDone());
-                prevGpuPresentTime = prevFrame.GpuPresentTime;
+            int previousGpuPresentTime = 0;
+            if (m_frameIndex > 0) {
+                previousGpuPresentTime = context.frames[m_frameIndex - 1].GpuPresentTime;
             }
-            int requestTime = std::max(endSim, prevGpuPresentTime);
-            auto result = context.Schedule(requestTime, (int) (context.setting.CpuSimTime(m_frameIndex)));
-            frame.CpuSimStartTime = result.schedulingTime;
-            frame.CpuSimCoreIndex = result.coreIndex;
+            assert(frame.CpuPrepStartTime >= 0);
+            int cpuPrepEndTime = frame.CpuPrepStartTime + (int)(context.setting.CpuPrepTime(m_frameIndex));
+            frame.GpuStartTime = std::max(cpuPrepEndTime, previousGpuPresentTime);
+            frame.GpuStopTime = frame.GpuStartTime + (int)(context.setting.GpuTime(m_frameIndex));
+
+            if (context.setting.vsyncEnabled) {
+                frame.GpuPresentTime = (((frame.GpuStopTime - 1) / context.setting.resolution) + 1) * context.setting.resolution;
+            }
+            else {
+                frame.GpuPresentTime = frame.GpuStopTime;
+            }
+            DRGN_ASSERT(frame.GpuStopTime <= frame.GpuPresentTime);
         }
-        context.jobQueue.push_back(std::move(std::make_unique<CpuPrepJob>(m_frameIndex)));
-        if (m_frameIndex < context.setting.maxFrameIndex)
+    };
+    class CpuPrepJob : public FrameJob {
+    public:
+        CpuPrepJob(int frameIndex)
+            : FrameJob(frameIndex)
         {
-            context.jobQueue.push_back(std::move(std::make_unique<CpuSimJob>(m_frameIndex + 1)));
         }
-    }
-};
+
+        bool IsReady(const SimulationContext& context) const override
+        {
+            return true;
+        }
+
+        void Run(SimulationContext& context) override
+        {
+            SimulationContext::Frame& frame = context.frames[m_frameIndex];
+            assert(frame.CpuSimStartTime >= 0);
+
+            int requestTime = frame.CpuSimStartTime + context.setting.CpuSimTime(m_frameIndex);
+            auto result = context.Schedule(requestTime, (int)(context.setting.CpuPrepTime(m_frameIndex)));
+            frame.CpuPrepStartTime = result.schedulingTime;
+            frame.CpuPrepCoreIndex = result.coreIndex;
+            context.jobQueue.push_back(std::move(std::make_unique<GpuJob>(m_frameIndex)));
+        }
+    };
+    class CpuSimJob : public FrameJob {
+    public:
+        CpuSimJob(int frameIndex)
+            : FrameJob(frameIndex)
+        {
+        }
+
+        bool IsReady(const SimulationContext& context) const override
+        {
+            return m_frameIndex < context.setting.frameCount || context.frames[m_frameIndex - context.setting.frameCount].IsDone();
+        }
+
+        void Run(SimulationContext& context) override
+        {
+            SimulationContext::Frame& frame = context.frames[m_frameIndex];
+
+            if (m_frameIndex == 0) {
+                int requestTime = 0;
+                auto result = context.Schedule(requestTime, (int)(context.setting.CpuSimTime(m_frameIndex)));
+                frame.CpuSimStartTime = result.schedulingTime;
+                frame.CpuSimCoreIndex = result.coreIndex;
+            }
+            else {
+                int endSim = context.frames[m_frameIndex - 1].CpuSimStartTime + context.setting.CpuSimTime(m_frameIndex - 1);
+                int prevGpuPresentTime = 0;
+                if (m_frameIndex >= context.setting.frameCount) {
+                    SimulationContext::Frame& prevFrame = context.frames[m_frameIndex - context.setting.frameCount];
+                    assert(prevFrame.IsDone());
+                    prevGpuPresentTime = prevFrame.GpuPresentTime;
+                }
+                int requestTime = std::max(endSim, prevGpuPresentTime);
+                auto result = context.Schedule(requestTime, (int)(context.setting.CpuSimTime(m_frameIndex)));
+                frame.CpuSimStartTime = result.schedulingTime;
+                frame.CpuSimCoreIndex = result.coreIndex;
+            }
+            context.jobQueue.push_back(std::move(std::make_unique<CpuPrepJob>(m_frameIndex)));
+            if (m_frameIndex < context.setting.maxFrameIndex) {
+                context.jobQueue.push_back(std::move(std::make_unique<CpuSimJob>(m_frameIndex + 1)));
+            }
+        }
+    };
 }
 
-SimulationContext::SimulationContext(const FrameSetting& s) : setting(s) {
+SimulationContext::SimulationContext(const FrameSetting& s)
+    : setting(s)
+{
     coreTime.resize(s.coreCount);
     frames.resize(s.maxFrameIndex + 1);
-    for (int i = 0; i < s.coreCount; i++)
-    {
+    for (int i = 0; i < s.coreCount; i++) {
         coreTime[i] = 0;
     }
 }
 SimulationContext::SchedulingResult SimulationContext::Schedule(int requestTime, int duration)
 {
     SchedulingResult result;
-    for (int i = 0; i < setting.coreCount; i++)
-    {
-        if (coreTime[i] <= requestTime)
-        {
+    for (int i = 0; i < setting.coreCount; i++) {
+        if (coreTime[i] <= requestTime) {
             result.coreIndex = i;
             result.schedulingTime = requestTime;
             coreTime[i] = requestTime + duration;
@@ -309,10 +299,8 @@ SimulationContext::SchedulingResult SimulationContext::Schedule(int requestTime,
 
     result.coreIndex = 0;
     result.schedulingTime = coreTime[0];
-    for (int i = 1; i < setting.coreCount; i++)
-    {
-        if (coreTime[i] < result.schedulingTime)
-        {
+    for (int i = 1; i < setting.coreCount; i++) {
+        if (coreTime[i] < result.schedulingTime) {
             result.coreIndex = i;
             result.schedulingTime = coreTime[i];
         }
@@ -322,22 +310,17 @@ SimulationContext::SchedulingResult SimulationContext::Schedule(int requestTime,
     return result;
 }
 
-
-
 void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
 {
     SimulationContext context(setting);
 
     context.jobQueue.push_back(std::move(std::make_unique<CpuSimJob>(0)));
-    while (!context.jobQueue.empty())
-    {
+    while (!context.jobQueue.empty()) {
         bool doBreak = false;
-        for (auto iter = context.jobQueue.begin(); iter != context.jobQueue.end(); iter++)
-        {
+        for (auto iter = context.jobQueue.begin(); iter != context.jobQueue.end(); iter++) {
             FrameJob* j = (*iter).get();
             assert(j != nullptr);
-            if (j->IsReady(context))
-            {
+            if (j->IsReady(context)) {
                 j->Run(context);
                 context.jobQueue.erase(iter);
                 doBreak = true;
@@ -348,22 +331,20 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
     }
 
     int stableFrameIndex = 0;
-    for (int i = 1; i < (int)context.frames.size(); i++)
-    {
+    for (int i = 1; i < (int)context.frames.size(); i++) {
         const SimulationContext::Frame& frame = context.frames[i];
         const SimulationContext::Frame& prev = context.frames[i - 1];
 
         int fr = frame.GpuPresentTime - prev.GpuPresentTime;
         int prevFr = fr;
         if (i > 1) {
-            const SimulationContext::Frame& prev2 = context.frames[i-2];
+            const SimulationContext::Frame& prev2 = context.frames[i - 2];
             prevFr = prev.GpuPresentTime - prev2.GpuPresentTime;
         }
         if (!(frame.Latency() == prev.Latency()
             && frame.RelativePrepTime() == prev.RelativePrepTime()
             && frame.RelativeGpuTime() == prev.RelativeGpuTime()
-            && fr == prevFr))
-        {
+            && fr == prevFr)) {
             stableFrameIndex = i;
         }
     }
@@ -371,8 +352,7 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
     m_timeboxes.clear();
     m_latencyBoxes.clear();
     m_frameRates.clear();
-    for (int i = 0; i < (int) context.frames.size(); i++)
-    {
+    for (int i = 0; i < (int)context.frames.size(); i++) {
         const SimulationContext::Frame& frame = context.frames[i];
         assert(frame.IsDone());
         TimeBox cpuSim;
@@ -402,13 +382,11 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         gpuPresent.isGpuTimeBox = true;
         gpuPresent.name = "Present";
         m_timeboxes.push_back(cpuSim);
-        if (cpuPrep.stopTime > cpuPrep.startTime)
-        {
+        if (cpuPrep.stopTime > cpuPrep.startTime) {
             m_timeboxes.push_back(cpuPrep);
         }
         m_timeboxes.push_back(gpu);
-        if (gpuPresent.stopTime > gpuPresent.startTime)
-        {
+        if (gpuPresent.stopTime > gpuPresent.startTime) {
             m_timeboxes.push_back(gpuPresent);
         }
 
@@ -425,28 +403,23 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         fr.stable = i >= stableFrameIndex;
         fr.isPerturbation = setting.isPerturbationFrame(i);
 
-        if (i > 0)
-        {
+        if (i > 0) {
             fr.duration = frame.GpuPresentTime - context.frames[i - 1].GpuPresentTime;
         }
-        else
-        {
+        else {
             fr.duration = frame.GpuPresentTime;
         }
-		int total = 0;
-		for (int k = 0; k < setting.deltaTimeSampleCount; k++)
-		{
-			int idx = i - k - 1;
-			if (idx >= 0)
-			{
-				total += m_frameRates[idx].duration;
-			}
-			else
-			{
-				total += setting.resolution;
-			}
-		}
-		fr.dt_prediction = total / setting.deltaTimeSampleCount;
+        int total = 0;
+        for (int k = 0; k < setting.deltaTimeSampleCount; k++) {
+            int idx = i - k - 1;
+            if (idx >= 0) {
+                total += m_frameRates[idx].duration;
+            }
+            else {
+                total += setting.resolution;
+            }
+        }
+        fr.dt_prediction = total / setting.deltaTimeSampleCount;
         m_frameRates.push_back(fr);
     }
 }
@@ -473,8 +446,7 @@ void FrameSimulator::Draw(const FrameSimulator::Setting& setting)
 
     float scroll = ImGui::GetScrollX();
 
-    if (setting.scaleChanged)
-    {
+    if (setting.scaleChanged) {
         scroll = setting.ToPosition(m_previousTimeMin);
         ImGui::SetScrollX(scroll);
         int timeMin = setting.ToTime(scroll);
@@ -484,21 +456,18 @@ void FrameSimulator::Draw(const FrameSimulator::Setting& setting)
     int timeMin = setting.ToTime(scroll);
     float s = setting.ToPosition(timeMin);
     m_previousTimeMin = timeMin;
-    if (setting.scaleChanged)
-    {
+    if (setting.scaleChanged) {
         std::cout << ", timeMin: " << m_previousTimeMin << '\n';
     }
     int timeMax = setting.ToTime(scroll + ImGui::GetWindowSize().x);
 
-    for (const auto& f : m_frameRates)
-    {
+    for (const auto& f : m_frameRates) {
         if (timeMin <= f.time && f.time <= timeMax) {
             DrawFrameRate(context, f, offset);
         }
     }
     int maxTime = 0;
-    for (const auto& t : m_timeboxes)
-    {
+    for (const auto& t : m_timeboxes) {
         DRGN_ASSERT(t.startTime <= t.stopTime);
         if (t.startTime <= timeMax && t.stopTime >= timeMin) {
             DrawTimeBox(context, t, offset);
@@ -508,8 +477,7 @@ void FrameSimulator::Draw(const FrameSimulator::Setting& setting)
 
     DrawCoreLabel(context);
 
-    for (const auto& t : m_latencyBoxes)
-    {
+    for (const auto& t : m_latencyBoxes) {
         DRGN_ASSERT(t.startTime <= t.stopTime);
         if (t.startTime <= timeMax && t.stopTime >= timeMin) {
             DrawLatencyBox(context, t, offset);
@@ -544,7 +512,8 @@ void FrameSimulator::DrawCoreLine(const DrawContext& context)
 
         if (i % 2 == 0) {
             context.drawlist.AddRectFilled(p1, p2, 0xff0c0c0c);
-        } else {
+        }
+        else {
             context.drawlist.AddRectFilled(p1, p2, 0xff111111);
         }
     }
@@ -580,12 +549,10 @@ void FrameSimulator::DrawCoreLabel(const DrawContext& context)
 void FrameSimulator::DrawTimeBox(const DrawContext& context, const TimeBox& timebox, const ImVec2& offset)
 {
     ImVec2 origin;
-    if (timebox.isGpuTimeBox)
-    {
+    if (timebox.isGpuTimeBox) {
         origin = context.gpuLineOrigin;
     }
-    else
-    {
+    else {
         origin = context.cpuLineOrigin + ImVec2(0.f, timebox.coreIndex * context.setting.lineHeight);
     }
 
@@ -615,7 +582,7 @@ void FrameSimulator::DrawTimeBox(const DrawContext& context, const TimeBox& time
 
 void FrameSimulator::DrawLatencyBox(const DrawContext& context, const LatencyBox& box, const ImVec2& offset)
 {
-    ImVec2 origin = context.latencyOrigin + ImVec2(0.f, (box.frameIndex % context.setting.frameCount)* context.setting.latencyLineHeight);
+    ImVec2 origin = context.latencyOrigin + ImVec2(0.f, (box.frameIndex % context.setting.frameCount) * context.setting.latencyLineHeight);
 
     ImVec2 p0 = origin;
     ImVec2 p1 = origin;
@@ -652,27 +619,25 @@ void FrameSimulator::DrawFrameRate(const DrawContext& context, const FrameRate& 
     p1.y += context.windowSize.y;
 
     ImU32 color = g_DarkGrey;
-    if (fr.stable)
-    {
+    if (fr.stable) {
         color = g_Red;
     }
-    if (fr.isPerturbation)
-    {
+    if (fr.isPerturbation) {
         color = g_Yellow;
     }
     float duration = (float(fr.duration)) / context.setting.resolution;
-	float dt_pred = (float(fr.dt_prediction)) / context.setting.resolution;
-	float dt_error = (duration - dt_pred) / duration;
+    float dt_pred = (float(fr.dt_prediction)) / context.setting.resolution;
+    float dt_error = (duration - dt_pred) / duration;
     context.drawlist.AddLine(p0 + offset, p1 + offset, color, 1.f);
-	std::stringstream framerateText;
-	framerateText << '[' << fr.frameIndex << "] " << duration;
-	std::string text_str = framerateText.str();
-	const char* text = text_str.c_str();
-	std::stringstream dtText;
-	dtText << "dt: " << dt_pred << " (err: " << dt_error << ")";
-	std::string dt_text_str = dtText.str();
-	const char* dt_text = dt_text_str.c_str();
-	ImVec2 textFrameSize = ImMax(ImGui::CalcTextSize(text), ImGui::CalcTextSize(dt_text));
-	context.drawlist.AddText(p0 + ImVec2(-textFrameSize.x - 5.f, 0.f) + offset, g_Grey, text);
-	context.drawlist.AddText(p0 + ImVec2(-textFrameSize.x - 5.f, 20.f) + offset, g_Grey, dt_text);
+    std::stringstream framerateText;
+    framerateText << '[' << fr.frameIndex << "] " << duration;
+    std::string text_str = framerateText.str();
+    const char* text = text_str.c_str();
+    std::stringstream dtText;
+    dtText << "pred: " << dt_pred; // << " (err: " << dt_error << ")";
+    std::string dt_text_str = dtText.str();
+    const char* dt_text = dt_text_str.c_str();
+    ImVec2 textFrameSize = ImMax(ImGui::CalcTextSize(text), ImGui::CalcTextSize(dt_text));
+    context.drawlist.AddText(p0 + ImVec2(-textFrameSize.x - 5.f, 0.f) + offset, g_Grey, text);
+    context.drawlist.AddText(p0 + ImVec2(-textFrameSize.x - 5.f, 20.f) + offset, g_Grey, dt_text);
 }
