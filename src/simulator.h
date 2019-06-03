@@ -21,27 +21,33 @@ struct FrameSetting
     float margin = 10.f;
     ImVec2 coreOffset = ImVec2(50.f, 0.f);
     int deltaTimeSampleCount = 16;
-	int perturbationIndex = 0;
-	int perturbationDuration = 0;
+    int perturbationIndex = 0;
+    int perturbationDuration = 0;
     float perturbationSimRatio = 1.0f;
     float perturbationPrepRatio = 1.0f;
     float perturbationGpuRatio = 1.0f;
 
-    bool vsyncEnabled = false;
+    bool vsyncEnabled = true;
     float GpuDuration = 1.0f;
+    float CpuKickDuration = 0.0f;
     float CpuDuration = 1.0f;
     float CpuSimRatio = 0.5f;
     float CpuSimDuration = 0.5f;
-	float CpuPrepDuration = 0.5f;
+    float CpuPrepDuration = 0.5f;
     int frameCount = 3;
     int maxFrameIndex = 100;
 
-	bool inline isPerturbationFrame(int index) const {
-		return perturbationIndex <= index && index < perturbationIndex + perturbationDuration;
-	}
+    bool inline isPerturbationFrame(int index) const {
+        return perturbationIndex <= index && index < perturbationIndex + perturbationDuration;
+    }
 
+    int inline CpuKickTime(int index) const {
+        float pert = isPerturbationFrame(index) ? perturbationSimRatio : 1.0f;
+
+        return static_cast<int>(CpuKickDuration * resolution * pert);
+    }
     int inline CpuSimTime(int index) const {
-        float pert = isPerturbationFrame(index)? perturbationSimRatio : 1.0f;
+        float pert = isPerturbationFrame(index) ? perturbationSimRatio : 1.0f;
 
         return static_cast<int>(CpuSimRatio * CpuDuration * resolution * pert);
     }
@@ -89,12 +95,16 @@ public:
         int CpuSimCoreIndex = -1;
         int CpuPrepStartTime = -1;
         int CpuPrepCoreIndex = -1;
+        int CpuKickStartTime = -1;
+        int CpuKickCoreIndex = -1;
         int GpuStartTime = -1;
         int GpuStopTime = -1;
         int GpuPresentTime = -1;
 
-        inline bool IsDone() const { return CpuSimStartTime >= 0 && CpuPrepStartTime >= 0 && GpuStartTime >= 0 && GpuPresentTime >= 0
-            && CpuSimCoreIndex >= 0 && CpuPrepCoreIndex >= 0 && GpuStopTime >= 0; }
+        inline bool IsDone() const {
+            return CpuSimStartTime >= 0 && CpuPrepStartTime >= 0 && GpuStartTime >= 0 && GpuPresentTime >= 0
+                && CpuSimCoreIndex >= 0 && CpuPrepCoreIndex >= 0 && GpuStopTime >= 0;
+        }
 
         inline int Latency() const {
             return GpuPresentTime - CpuSimStartTime;
@@ -131,7 +141,7 @@ public:
 
     void DrawOptions(Setting& setting);
     void Draw(const Setting& setting);
-    void Simulate(const Setting& setting); 
+    void Simulate(const Setting& setting);
 
 private:
     struct TimeBox
@@ -160,7 +170,7 @@ private:
         bool stable = false;
         bool missed = false;
         bool isPerturbation = false;
-		int dt_prediction = -1;
+        int dt_prediction = -1;
     };
 
     struct DrawContext
@@ -181,8 +191,8 @@ private:
         ImDrawList& drawlist;
 
         const ImVec2 frameRateOrigin{ startCursorPosition + windowPosition };
-        const ImVec2 gpuLineOrigin { frameRateOrigin + ImVec2(0.f, 40.f) };
-        const ImVec2 cpuLineOrigin { gpuLineOrigin + ImVec2(0.f, setting.margin + setting.lineHeight)};
+        const ImVec2 gpuLineOrigin{ frameRateOrigin + ImVec2(0.f, 40.f) };
+        const ImVec2 cpuLineOrigin{ gpuLineOrigin + ImVec2(0.f, setting.margin + setting.lineHeight) };
         const ImVec2 latencyOrigin{ cpuLineOrigin + ImVec2(0.f, setting.margin + setting.coreCount * setting.lineHeight) };
     };
 

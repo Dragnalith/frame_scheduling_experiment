@@ -84,6 +84,17 @@ void FrameSimulator::DrawOptions(FrameSimulator::Setting& setting)
         ImGui::SliderInt("Frame Count", &setting.frameCount, 1, 16);
 
         ImGui::DragScalar("Gpu Duration", ImGuiDataType_Float, &setting.GpuDuration, 0.01f, &f32_0, &f32_2, "%f", 1.0f);
+
+        // CpuKick Duration
+        {
+            bool cpuKickRatioChanged = ImGui::DragScalar("CpuKick Duration", ImGuiDataType_Float, &setting.CpuKickDuration, 0.01f, &f32_0, &f32_2, "%f", 1.0f);
+            ImGui::SameLine();
+            if (ImGui::Button("Reset4")) {
+                setting.CpuKickDuration = 0.0f;
+                cpuKickRatioChanged = true;
+            }
+        }
+        setting.CpuKickDuration = setting.CpuKickDuration > setting.GpuDuration ? setting.GpuDuration : setting.CpuKickDuration;
         // Cpu Duration
         {
             bool cpuDurationChanged = ImGui::DragScalar("All Cpu Duration", ImGuiDataType_Float, &setting.CpuDuration, 0.01f, &f32_0, &f32_4, "%f", 1.0f);
@@ -174,6 +185,7 @@ namespace {
 
     class CpuSimJob;
     class CpuPrepJob;
+    class CpuKickJob;
     class GpuJob;
 
     class GpuJob : public FrameJob {
@@ -196,8 +208,14 @@ namespace {
                 previousGpuPresentTime = context.frames[m_frameIndex - 1].GpuPresentTime;
             }
             assert(frame.CpuPrepStartTime >= 0);
+
             int cpuPrepEndTime = frame.CpuPrepStartTime + (int)(context.setting.CpuPrepTime(m_frameIndex));
-            frame.GpuStartTime = std::max(cpuPrepEndTime, previousGpuPresentTime);
+            int requestGpuTime = std::max(cpuPrepEndTime, previousGpuPresentTime);
+            auto result = context.Schedule(requestGpuTime, (int)(context.setting.CpuKickTime(m_frameIndex)));
+
+            frame.CpuKickStartTime = result.schedulingTime;
+            frame.CpuKickCoreIndex = result.coreIndex;
+            frame.GpuStartTime = result.schedulingTime;
             frame.GpuStopTime = frame.GpuStartTime + (int)(context.setting.GpuTime(m_frameIndex));
 
             if (context.setting.vsyncEnabled) {
@@ -206,6 +224,7 @@ namespace {
             else {
                 frame.GpuPresentTime = frame.GpuStopTime;
             }
+
             DRGN_ASSERT(frame.GpuStopTime <= frame.GpuPresentTime);
         }
     };
@@ -369,6 +388,13 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         cpuPrep.coreIndex = frame.CpuPrepCoreIndex;
         cpuPrep.isGpuTimeBox = false;
         cpuPrep.name = "CpuPrep";
+        TimeBox cpuKick;
+        cpuKick.frameIndex = i;
+        cpuKick.startTime = frame.CpuKickStartTime;
+        cpuKick.stopTime = cpuKick.startTime + setting.CpuKickTime(i);
+        cpuKick.coreIndex = frame.CpuKickCoreIndex;
+        cpuKick.isGpuTimeBox = false;
+        cpuKick.name = "CpuKick";
         TimeBox gpu;
         gpu.frameIndex = i;
         gpu.startTime = frame.GpuStartTime;
@@ -384,6 +410,9 @@ void FrameSimulator::Simulate(const FrameSimulator::Setting& setting)
         m_timeboxes.push_back(cpuSim);
         if (cpuPrep.stopTime > cpuPrep.startTime) {
             m_timeboxes.push_back(cpuPrep);
+        }
+        if (cpuKick.stopTime > cpuKick.startTime) {
+            m_timeboxes.push_back(cpuKick);
         }
         m_timeboxes.push_back(gpu);
         if (gpuPresent.stopTime > gpuPresent.startTime) {
